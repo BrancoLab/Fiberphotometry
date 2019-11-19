@@ -1,0 +1,35 @@
+debug_mode: True  # If true it allows a bunch of stuff, INCLUDING OVERWRITING EXISTING FILES
+
+base_dir: D:\Dropbox (UCL - SWC)\Rotation_vte\test   # this shouldn't change that often
+exp_dir: test01 # this is specific to each experiment
+
+
+save_to_video: True # If false it only streams the video but doesnt save it
+
+# CAMERA CONFIG
+camera_config:
+    video_format: .avi
+    n_cameras: 1
+    timeout: 100   # frame acquisition timeout
+
+    # ? Trigger mode and acquisition options -> needed for constant framerate
+    trigger_mode: False  # ! hardware triggering
+    acquisition:     
+        exposure: "1000"
+        frame_width: "480"  # must be a multiple of 32
+        frame_height: "320" # must be a multiple of 32
+        gain: "12"
+        frame_offset_y: "544"
+        frame_offset_x: "704"
+    
+    # all commands and options  https://gist.github.com/tayvano/6e2d456a9897f55025e25035478a3a50
+    # pixel formats https://ffmpeg.org/pipermail/ffmpeg-devel/2007-May/035617.html
+    outputdict: # for ffmpeg
+        -vcodec: 'mpeg4'   #   low fps high res
+        -crf: '0'
+        -preset: 'slow'  
+        -pix_fmt: 'gray'  # yuvj444p
+        -cpu-used: '1'  # 0-8. default 1, higher leads to higher speed and lower quality
+        -flags: 'gray'
+
+
