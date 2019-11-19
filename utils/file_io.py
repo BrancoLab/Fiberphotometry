@@ -32,7 +32,6 @@ def append_csv_file(csv_file, row, fieldnames):
         logger = csv.DictWriter(f, fieldnames=fieldnames)
         logger.writerow(row)
 
-
 def load_csv_file(csv_file):
     return pd.read_csv(csv_file)
 
