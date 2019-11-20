@@ -6,6 +6,19 @@ exp_dir: test01 # this is specific to each experiment
 
 save_to_video: True # If false it only streams the video but doesnt save it
 
+
+
+# EXPERIMENT METADATA
+n_recording_sites: 4
+single_fiber_diameter: 150  # diameter in pixels of one fiber on the frame
+single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
+
+
+# VISUALIZATION CONFIG
+visual_config:
+    window_size: (1000, 800)
+
+
 # CAMERA CONFIG
 camera_config:
     video_format: .avi
@@ -15,12 +28,12 @@ camera_config:
     # ? Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: False  # ! hardware triggering
     acquisition:     
-        exposure: "1000"
-        frame_width: "480"  # must be a multiple of 32
-        frame_height: "320" # must be a multiple of 32
+        exposure: "3000"
+        frame_width: "768"  # must be a multiple of 32
+        frame_height: "768" # must be a multiple of 32
         gain: "12"
-        frame_offset_y: "544"
-        frame_offset_x: "704"
+        frame_offset_y: "192" # must be a multiple of 32
+        frame_offset_x: "544" # must be a multiple of 32
     
     # all commands and options  https://gist.github.com/tayvano/6e2d456a9897f55025e25035478a3a50
     # pixel formats https://ffmpeg.org/pipermail/ffmpeg-devel/2007-May/035617.html

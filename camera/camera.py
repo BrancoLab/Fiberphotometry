@@ -13,6 +13,7 @@ from utils.file_io import *
 
 class Camera():
     def __init__(self):
+        self.cameras = None
         self.frame_count = 0
         self.cam_writers = {}
         self.grabs = {}
@@ -40,6 +41,13 @@ class Camera():
                 self.cam_writers[i] = skvideo.io.FFmpegWriter(file_name, outputdict=self.camera_config["outputdict"])
         else:
             self.cam_writers = {str(i):None for i in np.arange(self.camera_config["n_cameras"])}
+
+    def adjust_camera_exposure(self, camera, exposure):
+        camera.StopGrabbing()
+        camera.ExposureTime.FromString(str(exposure))
+        camera.Open()
+        camera.StartGrabbing()
+
 
     def setup_cameras(self):
         # set up cameras
@@ -96,7 +104,31 @@ class Camera():
                     self.frame_count, fps))
         return start
 
-    def grab_frames(self):
+
+    def grab_single_frame(self):
+        """[Grabs a single frame from each camera]
+        """
+        frames = []
+        for i, cam in enumerate(self.cameras): 
+            try:
+                grab = cam.RetrieveResult(self.camera_config["timeout"])
+            except:
+                raise ValueError("Grab failed")
+
+            if not grab.GrabSucceeded():
+                break
+            else:
+                frames.append(grab.Array)
+
+        if len(frames) == 1:
+            return frames[0]
+        else:
+            return frames
+
+    def grab_write_frames(self):
+        """[Grabs a single frame from each camera and writes it to file]
+        """
+        frames = []
         for i, (writer, cam) in enumerate(zip(self.cam_writers.values(), self.cameras)): 
             try:
                 grab = cam.RetrieveResult(self.camera_config["timeout"])
@@ -108,33 +140,13 @@ class Camera():
             else:
                 if self.save_to_video:
                     writer.writeFrame(grab.Array)
-                pass
-
-
-        return grab
-
-
-    def stream_videos(self):
-        # ? Keep looping to acquire frames
-        # self.grab.GrabSucceeded is false when a camera doesnt get a frame -> exit the loop
-        while True:
-            try:
-                if self.frame_count % 100 == 0:  # Print the FPS in the last 100 frames
-                    if self.frame_count == 0: start = time.time()
-                    else: start = self.print_current_fps(start)
-
-                # ! Loop over each camera and get frames
-                grab = self.grab_frames()
-
-                # Update frame count and terminate
-                self.frame_count += 1
-
-            except pylon.TimeoutException as e:
-                print("Pylon timeout Exception")
-                raise ValueError("Could not grab frame within timeout")
-
-        # Close camera
-        for cam in self.cameras: cam.Close()
+                
+                frames.append(grab.Array)
+        if len(frames) == 1:
+            return frames[0]
+        else:
+            raise NotImplementedError("Only made stuff to work with one camera sorry")
+            return frames
 
     def close_pylon_windows(self):
         if self.live_display:
