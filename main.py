@@ -4,12 +4,17 @@ import os
 import time
 import numpy as np
 from pypylon import pylon
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 from utils.file_io import check_file_exists, check_create_folder, check_folder_empty
+from utils.parallel_processing_classes import Worker
 from utils.settings_parser import SettingsParser
 from camera.camera import Camera
 from utils.img_process import ImgProcess
 from camera.visualization import Visual
+
 
 class Main(SettingsParser, Camera, ImgProcess, Visual):
     def __init__(self, **kwargs):
@@ -19,10 +24,21 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
         # Load settings
         SettingsParser.__init__(self, settings_file=settings_file)
 
+        # Start a parallel worker for the vispy gui
+        self.threadpool = QThreadPool()
+        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
+
+        # Loop to handle psychopy stim generation
+        gui_worker = Worker(self.start_gui)
+        self.threadpool.start(gui_worker)
+
         # Start other parent classes
         Camera.__init__(self)
         ImgProcess.__init__(self)
         Visual.__init__(self)
+
+        # Variables used elserwhere
+        self.recording = False
 
 
     def setup_experiment_files(self):
@@ -57,13 +73,15 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
         self.exp_start_time = time.time() * 1000 #  experiment starting time in milliseconds
 
         # Set up data storage
-        self.data = dict(signal=[[] for i in range(self.n_recording_sites)])
+        self.data = dict(signal={i:[] for i in range(self.n_recording_sites)},
+                        update_signal = {i:0 for i in range(self.n_recording_sites)})
 
         try:
             self.stream_videos() # <- MAIN LOOP, all the important stuff happens here
         except (KeyboardInterrupt, ValueError) as e:
             print("Acquisition terminted with error: ", e)
             self.terminate_experiment()
+
 
     def stream_videos(self):
         """[MAIN LOOP. Keeps grabbing frames from camera and calls the processing and visualization functios to extract 
@@ -82,6 +100,9 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
 
                 # ! Extract the signal from the ROIs
                 self.extract_signal_from_frame(frames)
+
+                # if self.debug_mode: 
+                #     self.display_frame_opencv(frames)
 
                 # Update frame count and terminate
                 self.frame_count += 1

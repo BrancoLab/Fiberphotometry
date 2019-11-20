@@ -16,7 +16,8 @@ single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to b
 
 # VISUALIZATION CONFIG
 visual_config:
-    window_size: (1000, 800)
+    n_display_points: 2500
+    window_size: [1000, 1000]
 
 
 # CAMERA CONFIG
@@ -28,7 +29,7 @@ camera_config:
     # ? Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: False  # ! hardware triggering
     acquisition:     
-        exposure: "3000"
+        exposure: "6000"
         frame_width: "768"  # must be a multiple of 32
         frame_height: "768" # must be a multiple of 32
         gain: "12"

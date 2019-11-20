@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from pypylon import pylon
 import matplotlib.pyplot as plt
+from scipy.stats import tmean
 
 class ImgProcess:
     def __init__(self):
@@ -24,7 +25,7 @@ class ImgProcess:
         # Draw circles that are detected. 
         if circles is not None: 
             if len(circles.shape) == 2:
-                return frame
+                return frame, ROIs
 
             # Convert the circle parameters a, b and r to integers. 
             circles = np.uint16(np.around(circles)) 
@@ -32,8 +33,6 @@ class ImgProcess:
             for pt in circles[0, :]: 
                 a, b, r = pt[0], pt[1], pt[2]-self.single_fiber_radius_titration
                 ROIs.append((a, b, r))
-        
-
 
                 # Draw the circumference of the circle. 
                 cv2.circle(frame, (a, b), r, (0, 255, 0), 2) 
@@ -53,7 +52,7 @@ class ImgProcess:
 
         circles=cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, cv2.HOUGH_GRADIENT, 100, 100,
                                 param1 = 50, param2 = 250, 
-                                minRadius = self.single_fiber_diameter-20, 
+                                minRadius = self.single_fiber_diameter-30, 
                                 maxRadius = self.single_fiber_diameter+20) 
         frame, ROIs = self._draw_circles_on_frame(circles, frame) # circles.shape(1, 15, 3)
 
@@ -68,11 +67,7 @@ class ImgProcess:
             newframe = np.zeros_like(frame)
 
             # Draw the circle and set else to nan
-            cv2.circle(newframe, (roi[0], roi[1]), roi[2], (255, 255, 255), -1) 
-
-            newframe = np.float16(newframe)
-            newframe[newframe == 0] = np.nan
-
+            cv2.circle(newframe, (roi[0], roi[1]), roi[2], (1, 1, 1), -1) 
             masks.append(newframe)
         return masks
 
@@ -90,6 +85,16 @@ class ImgProcess:
         k = cv2.waitKey(0)
         if k == ord('q'):
             cv2.destroyAllWindows()
+
+        self.fibers_template = frames['output']  # store this for visualization
+        # self.add_template_image()
+
+    def display_frame_opencv(self, frame):
+        window = cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("frame", 900,900)
+        cv2.imshow("frame",frame)
+        cv2.moveWindow("output",100,100)
+        cv2.waitKey(1)
 
     def extract_fibers_contours(self):
         """[Detects the location of fibers in the frame and draws an ROI around each]
@@ -118,13 +123,14 @@ class ImgProcess:
         else:
             self.ROI_masks = self._define_ROIs_masks(ROIs, frame)
             self.ROIs = ROIs
+            self.recording = True
 
 
     def extract_signal_from_frame(self, frame):
-        return
-        # for fiber_data, fiber_mask in zip(self.data['signal'], self.ROI_masks):
-        #     fiber_data.append(np.nanmean(frame*fiber_mask))
-
-
+        for i, fiber_mask in enumerate(self.ROI_masks):
+            signal = np.mean(np.ma.masked_array(frame, fiber_mask))
+            self.data['signal'][i].append(signal)
+            self.data['update_signal'][i] = signal
+          
 if __name__ == "__main__":
     ip = ImgProcess()
