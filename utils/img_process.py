@@ -6,10 +6,14 @@ import numpy as np
 from pypylon import pylon
 import matplotlib.pyplot as plt
 from scipy.stats import tmean
+from multiprocessing import Pool
 
 class ImgProcess:
     def __init__(self):
         self.ROIs = None
+
+        # Set up parallel processing
+        self.pool = pool = Pool(processes=self.n_recording_sites)        
 
         if self.cameras is None:
             self.get_cameras()  # get the detected cameras
@@ -100,7 +104,7 @@ class ImgProcess:
         """[Detects the location of fibers in the frame and draws an ROI around each]
         """
         # Increase camera exposure
-        self.adjust_camera_exposure(self.cameras[0], 18000)
+        self.adjust_camera_exposure(self.cameras[0], 20000)
 
         frame = self.grab_single_frame()
         # If we have multiple cameras we will get a list of frames
@@ -125,12 +129,28 @@ class ImgProcess:
             self.ROIs = ROIs
             self.recording = True
 
+    @staticmethod
+    def _extract_signal_from_finer(*args):
+        frame, mask, signal_list, signal_value = args[0], args[1], args[2], args[3]
+        signal = np.nanmean(np.ma.masked_array(frame, mask))
+        signal_list.append(signal)
+        signal_value = signal
+
 
     def extract_signal_from_frame(self, frame):
-        for i, fiber_mask in enumerate(self.ROI_masks):
-            signal = np.mean(np.ma.masked_array(frame, fiber_mask))
-            self.data['signal'][i].append(signal)
-            self.data['update_signal'][i] = signal
+        # arguments = [(frame, mask, self.data['signal'][i], self.data['update_signal'][i]) \
+        #                 for i,mask in enumerate(self.ROI_masks)]
+
+        arguments = [(frame, mask) for i,mask in enumerate(self.ROI_masks)]
+        self.pool.starmap(self._extract_signal_from_finer, arguments) 
+        
+        # # pass
+        # for i, fiber_mask in enumerate(self.ROI_masks):
+        #     signal = np.nanmean(np.ma.masked_array(frame, ~fiber_mask))
+        #     # signal = np.median(frame[fiber_mask])
+        #     # signal = np.random.randint(0, 10)
+        #     self.data['signal'][i].append(signal)
+        #     self.data['update_signal'][i] = signal
           
 if __name__ == "__main__":
     ip = ImgProcess()

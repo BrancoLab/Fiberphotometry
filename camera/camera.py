@@ -84,6 +84,8 @@ class Camera():
                 cam.MaxNumBuffer = 10 # Default is 10
             else:
                 cam.TriggerMode.FromString("Off")
+                cam.OutputQueueSize = 10
+                cam.MaxNumBuffer = 3 # Default is 10
 
             # Start grabbing + GRABBING OPTIONS
             cam.Open()
@@ -91,18 +93,16 @@ class Camera():
 
             # ! if you want to extract timestamps for the frames: https://github.com/basler/pypylon/blob/master/samples/grabchunkimage.py
 
-    def print_current_fps(self, start):
+    def print_current_fps(self):
         now = time.time()
-        elapsed = now - start
-        start = now
+        elapsed = now - self.exp_start
 
         # Given that we did 100 frames in elapsedtime, what was the framerate
-        time_per_frame = (elapsed / 100) * 1000
+        time_per_frame = (elapsed / self.frame_count) * 1000
         fps = round(1000  / time_per_frame, 2) 
         
         print("Tot frames: {}, fps: {}.".format(
                     self.frame_count, fps))
-        return start
 
 
     def grab_single_frame(self):

@@ -64,8 +64,6 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
 
         self.setup_experiment_files()
 
-        self.parallel_processes = [] # store all the parallel processes
-
         # Start cameras and set them up`
         self.start_cameras()
 
@@ -80,7 +78,6 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
             self.stream_videos() # <- MAIN LOOP, all the important stuff happens here
         except (KeyboardInterrupt, ValueError) as e:
             print("Acquisition terminted with error: ", e)
-            self.terminate_experiment()
 
 
     def stream_videos(self):
@@ -92,8 +89,8 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
         while True:
             try:
                 if self.frame_count % 100 == 0:  # Print the FPS in the last 100 frames
-                    if self.frame_count == 0: start = time.time()
-                    else: start = self.print_current_fps(start)
+                    if self.frame_count == 0: self.exp_start = time.time()
+                    else: self.print_current_fps()
 
                 # ! Loop over each camera and get frames
                 frames = self.grab_write_frames()
@@ -102,7 +99,7 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
                 self.extract_signal_from_frame(frames)
 
                 # if self.debug_mode: 
-                #     self.display_frame_opencv(frames)
+                    # self.display_frame_opencv(frames)
 
                 # Update frame count and terminate
                 self.frame_count += 1

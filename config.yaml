@@ -4,13 +4,13 @@ base_dir: D:\Dropbox (UCL - SWC)\Rotation_vte\test   # this shouldn't change tha
 exp_dir: test01 # this is specific to each experiment
 
 
-save_to_video: True # If false it only streams the video but doesnt save it
+save_to_video: False # If false it only streams the video but doesnt save it
 
 
 
 # EXPERIMENT METADATA
 n_recording_sites: 4
-single_fiber_diameter: 150  # diameter in pixels of one fiber on the frame
+single_fiber_diameter: 135  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 
 
@@ -29,9 +29,9 @@ camera_config:
     # ? Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: False  # ! hardware triggering
     acquisition:     
-        exposure: "6000"
-        frame_width: "768"  # must be a multiple of 32
-        frame_height: "768" # must be a multiple of 32
+        exposure: "3000"
+        frame_width: "640"  # must be a multiple of 32
+        frame_height: "640" # must be a multiple of 32
         gain: "12"
         frame_offset_y: "192" # must be a multiple of 32
         frame_offset_x: "544" # must be a multiple of 32
