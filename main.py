@@ -98,8 +98,7 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
                 # ! Extract the signal from the ROIs
                 self.extract_signal_from_frame(frames)
 
-                # if self.debug_mode: 
-                    # self.display_frame_opencv(frames)
+                self.display_frame_opencv(frames)
 
                 # Update frame count and terminate
                 self.frame_count += 1

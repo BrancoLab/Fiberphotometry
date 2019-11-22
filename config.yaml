@@ -12,7 +12,7 @@ save_to_video: False # If false it only streams the video but doesnt save it
 n_recording_sites: 4
 single_fiber_diameter: 135  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
-
+detect_fibers_manual: True # if false autmatic detection is attempted, but this doesn't work very well at the moment
 
 # VISUALIZATION CONFIG
 visual_config:

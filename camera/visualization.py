@@ -54,7 +54,7 @@ class Visual:
                 self.lines.roll_data(data)
         except:
             pass
-        # return
+        return
 
 if __name__ == "__main__":
     v = Visual()

@@ -7,13 +7,11 @@ from pypylon import pylon
 import matplotlib.pyplot as plt
 from scipy.stats import tmean
 from multiprocessing import Pool
+from functools import partial
 
 class ImgProcess:
     def __init__(self):
-        self.ROIs = None
-
-        # Set up parallel processing
-        self.pool = pool = Pool(processes=self.n_recording_sites)        
+        self.ROIs = None 
 
         if self.cameras is None:
             self.get_cameras()  # get the detected cameras
@@ -45,9 +43,35 @@ class ImgProcess:
                 cv2.circle(frame, (a, b), 1, (0, 0, 255), 3) 
         return frame, ROIs
 
+    @staticmethod
+    def add_roi_to_list(event, x, y, flags, data):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            cv2.circle(data[0], (x, y), data[1], (0, 255, 0), 2) 
+            cv2.circle(data[0], (x, y), data[1], (0, 0, 255), 3)  
+            return data[2].append((x, y, data[1]))
+
+    def manual_fiber_detection(self, frame, ROIs):
+        cv2.startWindowThread()
+        cv2.namedWindow('detection')
+        cv2.moveWindow("detection",100,100)   
+        cv2.imshow('detection', frame)
+
+
+        # create functions to react to clicked points
+        data = [frame, self.single_fiber_diameter-self.single_fiber_radius_titration, ROIs]
+        cv2.setMouseCallback('detection', self.add_roi_to_list, data)  
+
+        while len(ROIs) < self.n_recording_sites:
+            cv2.imshow('detection', frame)
+
+            if cv2.waitKey(10) & 0xFF == ord('q'):
+                    break
+
+
     def detect_fibers(self, frame):
         """[Uses opencv methods to draw circular ROIs around the fibers]
         """
+
         # grayscale
         if len(frame.shape) == 3:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -55,11 +79,17 @@ class ImgProcess:
         original_frame = frame.copy()
 
         circles=cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, cv2.HOUGH_GRADIENT, 100, 100,
-                                param1 = 50, param2 = 250, 
-                                minRadius = self.single_fiber_diameter-30, 
+                                param1 = 50, param2 = 350, 
+                                minRadius = self.single_fiber_diameter-50, 
                                 maxRadius = self.single_fiber_diameter+20) 
         frame, ROIs = self._draw_circles_on_frame(circles, frame) # circles.shape(1, 15, 3)
 
+        if len(ROIs) < self.n_recording_sites:
+            # Manually add rois
+            self.manual_fiber_detection(frame, ROIs)
+
+        # Display results
+        self.display_results(dict(output=frame))
         return dict(output=frame), ROIs
 
     def _define_ROIs_masks(self, ROIs, frame):
@@ -94,10 +124,7 @@ class ImgProcess:
         # self.add_template_image()
 
     def display_frame_opencv(self, frame):
-        window = cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("frame", 900,900)
         cv2.imshow("frame",frame)
-        cv2.moveWindow("output",100,100)
         cv2.waitKey(1)
 
     def extract_fibers_contours(self):
@@ -114,43 +141,31 @@ class ImgProcess:
         # Process the frame to detect fibers
         frames, ROIs = self.detect_fibers(frame)
 
-        # Display results
-        self.display_results(frames)
-
         # reset camera exposure
         self.adjust_camera_exposure(self.cameras[0], self.camera_config["acquisition"]["exposure"])
+
+        # Create an opencv window for later
+        window = cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("frame", 900,900)
+        cv2.moveWindow("frame",100,100)   
 
         # Check that everything went okay
         if len(ROIs) != self.n_recording_sites:
             raise ValueError("Detected {} when {} were expected!!!".format(len(ROIs), 
                                 self.n_recording_sites))
         else:
-            self.ROI_masks = self._define_ROIs_masks(ROIs, frame)
+            self.ROI_masks = self._define_ROIs_masks(ROIs, frame)#
+            self.ROI_mask_3d = np.dstack(self.ROI_masks)
             self.ROIs = ROIs
             self.recording = True
 
-    @staticmethod
-    def _extract_signal_from_finer(*args):
-        frame, mask, signal_list, signal_value = args[0], args[1], args[2], args[3]
-        signal = np.nanmean(np.ma.masked_array(frame, mask))
-        signal_list.append(signal)
-        signal_value = signal
-
-
     def extract_signal_from_frame(self, frame):
-        # arguments = [(frame, mask, self.data['signal'][i], self.data['update_signal'][i]) \
-        #                 for i,mask in enumerate(self.ROI_masks)]
+        frame3d = np.repeat(frame[:, :, np.newaxis], 4, axis=2)
+        signal = np.float16(np.nanmean(np.ma.masked_array(frame3d, self.ROI_mask_3d), axis=(0,1)))
+        for i,s in enumerate(signal):
+            self.data['signal'][i].append(s)
+            self.data['update_signal'][i] = s
 
-        arguments = [(frame, mask) for i,mask in enumerate(self.ROI_masks)]
-        self.pool.starmap(self._extract_signal_from_finer, arguments) 
-        
-        # # pass
-        # for i, fiber_mask in enumerate(self.ROI_masks):
-        #     signal = np.nanmean(np.ma.masked_array(frame, ~fiber_mask))
-        #     # signal = np.median(frame[fiber_mask])
-        #     # signal = np.random.randint(0, 10)
-        #     self.data['signal'][i].append(signal)
-        #     self.data['update_signal'][i] = signal
           
-if __name__ == "__main__":
+if __name__ == "__main__": 
     ip = ImgProcess()
