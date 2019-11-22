@@ -161,7 +161,9 @@ class ImgProcess:
 
     def extract_signal_from_frame(self, frame):
         frame3d = np.repeat(frame[:, :, np.newaxis], 4, axis=2)
-        signal = np.float16(np.nanmean(np.ma.masked_array(frame3d, self.ROI_mask_3d), axis=(0,1)))
+        # signal = np.float16(np.nanmean(np.ma.masked_array(frame3d, self.ROI_mask_3d), axis=(0,1)))
+        signal = np.float16(np.mean(frame3d*self.ROI_mask_3d, axis=(0,1)))
+
         for i,s in enumerate(signal):
             self.data['signal'][i].append(s)
             self.data['update_signal'][i] = s
