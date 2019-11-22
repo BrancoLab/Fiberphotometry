@@ -17,6 +17,9 @@ class Visual:
                 n_display_points = 200,
             )
             self.n_recording_sites = 4
+            self.ROI_colors_vispy = np.float32(np.vstack(
+                [(1, 1, 1, 1), (0.5, 0.5, 1, 1), (0.5, 1, 0.5,1), (.2, .2, .2, 1)]
+            ))
 
     def get_random_color(self):
         col = [np.random.uniform(.4, 0.8),
@@ -40,7 +43,8 @@ class Visual:
         pos[:, 1] = [i*h/self.N for i in range(self.N)]
 
         self.lines = scene.ScrollingLines(n_lines=self.N, line_size=self.M, columns=cols, dx=2/self.M,
-                                    cell_size=(10, 8), parent=view.scene)
+                                    color=self.ROI_colors_vispy,
+                                    cell_size=(10, 12), parent=view.scene)
         self.lines.transform = scene.STTransform(translate=(-1.8, -40), scale=(2, 2))
 
         timer = app.Timer(connect=self.update)
@@ -50,7 +54,7 @@ class Visual:
     def update(self, ev):
         try:
             if self.recording:
-                data = np.array(list(self.data['update_signal'].values())).reshape(self.N, 1)
+                data = np.array(list(self.data['update_signal'].values())).reshape(self.N, 1)*self.visual_config['gain']
                 self.lines.roll_data(data)
         except:
             pass

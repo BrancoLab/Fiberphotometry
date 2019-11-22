@@ -19,7 +19,11 @@ try:
 	import skfmm
 except:
 	print("didnt import skfmm")
+from skimage import resize
 
+def resize_img(img, factor):
+	shape = [int(s*factor for s in img.shape)]
+	return resize()
 
 # ! ARRAY NORMALISATION
 def interpolate_nans(A):

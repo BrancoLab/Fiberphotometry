@@ -1,44 +1,29 @@
-"""
-Show 10,000 realtime scrolling plots
-"""
-from vispy import app, scene
 import numpy as np
 
+from vispy import plot as vp
 
-canvas = scene.SceneCanvas(keys='interactive', show=True, size=(1024, 768))
-grid = canvas.central_widget.add_grid()
-view = grid.add_view(0, 1)
-view.camera = scene.MagnifyCamera(mag=1, size_factor=0.5, radius_ratio=0.6)
+fig = vp.Fig(size=(600, 500), show=False)
 
-# Add axes
-yax = scene.AxisWidget(orientation='left')
-yax.stretch = (0.05, 1)
-grid.add_widget(yax, 0, 0)
-yax.link_view(view)
+# Plot the target square wave shape
+x = np.linspace(0, 10, 1000)
+colors = [(0.8, 0, 0, 1),
+          (0.8, 0, 0.8, 1),
+          (0, 0, 1.0, 1),
+          (0, 0.7, 0, 1), ]
 
-xax = scene.AxisWidget(orientation='bottom')
-xax.stretch = (1, 0.05)
-grid.add_widget(xax, 1, 1)
-xax.link_view(view)
+lines = []
+for i,c in enumerate(colors):
+    y = np.random.normal(0, 10, size=1000)
+    tmp_line = fig[0, 0].plot((x, y+10*i), color=c, width=2)
+    tmp_line.update_gl_state(depth_test=False)
+    lines.append(tmp_line)
+lines[0].set_data((x, y))
+labelgrid = fig[0, 0].view.add_grid(margin=10)
 
-
-N = 4
-M = 250
-cols = 1
-view.camera.rect = (0, 0, cols, N/cols)
-
-lines = scene.ScrollingLines(n_lines=N, line_size=M, columns=cols, dx=0.8/M,
-                             cell_size=(1, 8), parent=view.scene)
-lines.transform = scene.STTransform(scale=(1, 1/8.))
-
-
-
-
-timer = app.Timer(connect=update, interval=0)
-timer.start()
+grid = vp.visuals.GridLines(color=(0, 0, 0, 0.5))
+grid.set_gl_state('translucent')
+fig[0, 0].view.add(grid)
 
 
 if __name__ == '__main__':
-    import sys
-    if sys.flags.interactive != 1:
-        app.run()
+    fig.show(run=True)

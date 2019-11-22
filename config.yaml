@@ -7,7 +7,6 @@ exp_dir: test01 # this is specific to each experiment
 save_to_video: False # If false it only streams the video but doesnt save it
 
 
-
 # EXPERIMENT METADATA
 n_recording_sites: 4
 single_fiber_diameter: 135  # diameter in pixels of one fiber on the frame
@@ -16,8 +15,9 @@ detect_fibers_manual: True # if false autmatic detection is attempted, but this 
 
 # VISUALIZATION CONFIG
 visual_config:
-    n_display_points: 2500
+    n_display_points: 500
     window_size: [1000, 1000]
+    gain: 2 # signal is multiplied by gain for visualization [keep it below 10]
 
 
 # CAMERA CONFIG

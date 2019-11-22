@@ -9,9 +9,12 @@ from scipy.stats import tmean
 from multiprocessing import Pool
 from functools import partial
 
+from utils.colors import MplColorHelper
+
 class ImgProcess:
     def __init__(self):
         self.ROIs = None 
+        self.ROIs_colors, self.ROI_colors_vispy = self._get_fibers_colors()
 
         if self.cameras is None:
             self.get_cameras()  # get the detected cameras
@@ -124,8 +127,23 @@ class ImgProcess:
         # self.add_template_image()
 
     def display_frame_opencv(self, frame):
+        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+        for (x,y,r), color in zip(self.ROIs, self.ROIs_colors):
+            cv2.circle(frame, (x, y), r, color, 2) 
+            cv2.circle(frame, (x, y), 1, (0, 0, 255), 3)
         cv2.imshow("frame",frame)
         cv2.waitKey(1)
+
+    def _get_fibers_colors(self):
+        ch = MplColorHelper("tab10", 0, self.n_recording_sites, rgb255=True)
+        colors = [ch.get_rgb(i) for i in range(self.n_recording_sites)]
+
+        vispy_colors = []
+        for r,g,b in colors:
+            vispy_colors.append((r/255, g/255, b/255, 1))
+
+        vispy_colors = np.float32(np.vstack(vispy_colors))
+        return colors, vispy_colors
 
     def extract_fibers_contours(self):
         """[Detects the location of fibers in the frame and draws an ROI around each]

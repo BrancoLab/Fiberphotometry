@@ -17,3 +17,5 @@ class SettingsParser:
         params = load_yaml(settings_file)
         for name, value in params.items():
             setattr(self, name, value)
+
+
