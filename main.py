@@ -71,8 +71,8 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
         self.exp_start_time = time.time() * 1000 #  experiment starting time in milliseconds
 
         # Set up data storage
-        self.data = dict(signal={i:[] for i in range(self.n_recording_sites)},
-                        update_signal = {i:0 for i in range(self.n_recording_sites)})
+        self.data = dict(signal={i:[] for i in range(self.n_recording_sites+1)},
+                        update_signal = {i:0 for i in range(self.n_recording_sites+1)})
 
         try:
             self.stream_videos() # <- MAIN LOOP, all the important stuff happens here
