@@ -7,15 +7,16 @@ save_to_video: True # If false it only streams the video but doesnt save it
 output_fps: 40
 
 # EXPERIMENT METADATA
-n_recording_sites: 1
+n_recording_sites: 2
 single_fiber_diameter: 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 detect_fibers_manual: True # if false autmatic detection is attempted, but this doesn't work very well at the moment
 
 # VISUALIZATION CONFIG
 visual_config:
-    n_display_points: 500
-    window_size: [1000, 1000]
+    n_display_points: 600
+    window_width: 1000
+    window_height: 1000
     gain: 2 # signal is multiplied by gain for visualization [keep it below 10]
 
 

@@ -130,8 +130,7 @@ class ImgProcess:
         for (x,y,r), color in zip(self.ROIs, self.ROIs_colors):
             cv2.circle(frame, (x, y), r, color, 2) 
             cv2.circle(frame, (x, y), 1, (0, 0, 255), 3)
-        cv2.imshow("frame",frame)
-        cv2.waitKey(1)
+        return frame
 
     def _get_fibers_colors(self):
         ch = MplColorHelper("tab10", 0, self.n_recording_sites, rgb255=True)
@@ -161,11 +160,6 @@ class ImgProcess:
         # reset camera exposure
         self.adjust_camera_exposure(self.cameras[0], self.camera_config["acquisition"]["exposure"])
 
-        # Create an opencv window for later
-        window = cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("frame", 900,900)
-        cv2.moveWindow("frame",100,100)   
-
         # Check that everything went okay
         if len(ROIs) != self.n_recording_sites:
             raise ValueError("Detected {} when {} were expected!!!".format(len(ROIs), 
@@ -182,9 +176,13 @@ class ImgProcess:
         signal = np.float16(np.mean(frame3d*self.ROI_mask_3d, axis=(0,1)))
 
         for i,s in enumerate(signal):
-            self.data['signal'][i].append(s)
-            self.data['update_signal'][i] = s
-            print(s)
+            if self.frame_count % 2 == 0:
+                self.data_dump[i]['signal'].append(s)
+                # self.data_dump[i]['motion'].append(0)
+            else:
+                # self.data_dump[i]['signal'].append(0)
+                self.data_dump[i]['motion'].append(s/2)
+
 
           
 if __name__ == "__main__": 

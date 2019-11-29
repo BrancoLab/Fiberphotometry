@@ -7,39 +7,87 @@ from pypylon import pylon
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph as pg
 
 from utils.file_io import check_file_exists, check_create_folder, check_folder_empty
 from utils.parallel_processing_classes import Worker
 from utils.settings_parser import SettingsParser
 from camera.camera import Camera
-from utils.img_process import ImgProcess
-from camera.visualization import Visual
+from datamanager.img_process import ImgProcess
 
 
-class Main(SettingsParser, Camera, ImgProcess, Visual):
-    def __init__(self, **kwargs):
+class FrameViewer(QtGui.QMainWindow):
+    def __init__(self, parent=None):
+        super(FrameViewer, self).__init__(parent)
+
+class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
+    def __init__(self, parent=None, **kwargs):
         # Parse kwargs
         settings_file = kwargs.pop("settings_file", None)
 
         # Load settings
         SettingsParser.__init__(self, settings_file=settings_file)
 
-        # Start a parallel worker for the vispy gui
-        self.threadpool = QThreadPool()
-        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
-
-        # Loop to handle psychopy stim generation
-        gui_worker = Worker(self.start_gui)
-        self.threadpool.start(gui_worker)
-
         # Start other parent classes
         Camera.__init__(self)
         ImgProcess.__init__(self)
-        Visual.__init__(self)
 
         # Variables used elserwhere
         self.recording = False
+        self.frame_count = 0
+        self.data_dump = {i:{'signal':[], 'motion':[]} for i in range(self.n_recording_sites)}
 
+        # Start stuff
+        self.setup_experiment_files()
+        self.extract_fibers_contours()
+        self.start_cameras()
+
+        super(Main, self).__init__(parent)
+        self.make_gui()
+
+    def make_gui(self):
+        self.frameview = FrameViewer()
+        self.frameview.show()
+
+        #### Create Gui Elements ###########
+        self.mainbox = QtGui.QWidget()
+        self.mainbox.setWindowTitle(self.exp_dir)
+        self.setCentralWidget(self.mainbox)
+        self.mainbox.setLayout(QtGui.QVBoxLayout())
+
+        self.second_window = QtGui.QWidget()
+
+        self.canvas = pg.GraphicsLayoutWidget()
+        self.mainbox.layout().addWidget(self.canvas)
+
+        self.label = QtGui.QLabel()
+        self.mainbox.layout().addWidget(self.label)
+
+        self.view = self.canvas.addViewBox()
+        self.view.setAspectLocked(True)
+        self.view.setRange(QtCore.QRectF(0,0, self.visual_config['window_width'], self.visual_config['window_height']))
+
+        #  image plot
+        self.img = pg.ImageItem(border='w')
+        self.view.addItem(self.img)
+
+        self.plots={i:{'signal':None, 'motion':None} for i in range(self.n_recording_sites)}
+        for i in range(self.n_recording_sites):
+            self.canvas.nextRow()
+            #  line plot
+            self.otherplot = self.canvas.addPlot()
+            self.plots[i]['signal'] = self.otherplot.plot(pen=self.ROIs_colors[i])
+            self.plots[i]['motion'] = self.otherplot.plot(pen='w')
+
+
+        #### Set Data  #####################
+        self.counter = 0
+        self.fps = 0.
+        self.lastupdate = time.time()
+
+        #### Start  #####################
+        self._update()
 
     def setup_experiment_files(self):
         """[Takes care of creating folder and files for the experiment]
@@ -58,61 +106,42 @@ class Main(SettingsParser, Camera, ImgProcess, Visual):
             for vid in self.video_files_names:
                 if check_file_exists(vid) and not self.debug_mode: raise FileExistsError("Cannot overwrite video file: ", vid)
 
-    def start_experiment(self):
-        if self.ROIs is None:
-            raise ValueError("You need to extract the ROI locations before starting the experiment, call self.detect_fibers")
-
-        self.setup_experiment_files()
-
-        # Start cameras and set them up`
-        self.start_cameras()
-
-        # Start streaming videos
-        self.exp_start_time = time.time() * 1000 #  experiment starting time in milliseconds
-
-        # Set up data storage
-        self.data = dict(signal={i:[] for i in range(self.n_recording_sites+1)},
-                        update_signal = {i:0 for i in range(self.n_recording_sites+1)})
-
-        try:
-            self.stream_videos() # <- MAIN LOOP, all the important stuff happens here
-        except (KeyboardInterrupt, ValueError) as e:
-            print("Acquisition terminted with error: ", e)
 
 
-    def stream_videos(self):
-        """[MAIN LOOP. Keeps grabbing frames from camera and calls the processing and visualization functios to extract 
-        and display signal ]"""
+    def _update(self):
+        if self.recording:
+            frame = self.grab_write_frames()
 
-        # ? Keep looping to acquire frames
-        # self.grab.GrabSucceeded is false when a camera doesnt get a frame -> exit the loop
-        while True:
-            try:
-                if self.frame_count % 100 == 0:  # Print the FPS in the last 100 frames
-                    if self.frame_count == 0: self.exp_start = time.time()
-                    else: self.print_current_fps()
+            # Extract the signal from the ROIs
+            self.extract_signal_from_frame(frame)
 
-                # ! Loop over each camera and get frames
-                frames = self.grab_write_frames()
+            # add ROI to frame
+            frame = self.display_frame_opencv(frame)
 
-                # ! Extract the signal from the ROIs
-                self.extract_signal_from_frame(frames)
+        # Display frame
+        self.img.setImage(frame)
 
-                self.display_frame_opencv(frames)
+        # Update plots
+        for i in range(self.n_recording_sites):
+            self.plots[i]['signal'].setData(self.data_dump[i]['signal'][-self.visual_config['n_display_points']:])
+            self.plots[i]['motion'].setData(self.data_dump[i]['motion'][-self.visual_config['n_display_points']:])
 
-                # Update frame count and terminate
-                self.frame_count += 1
-
-            except pylon.TimeoutException as e:
-                print("Pylon timeout Exception")
-                raise ValueError("Could not grab frame from camera within timeout interval")
-
-        # Close camera
-        for cam in self.cameras: cam.Close()
-
+        # Get FPS and make the clock tick
+        now = time.time()
+        dt = (now-self.lastupdate)
+        if dt <= 0:
+            dt = 0.000000000001
+        fps2 = 1.0 / dt
+        self.lastupdate = now
+        self.fps = self.fps * 0.9 + fps2 * 0.1
+        tx = 'Mean Frame Rate:  {fps:.3f} FPS'.format(fps=self.fps )
+        self.label.setText(tx)
+        QtCore.QTimer.singleShot(1, self._update)
+        self.counter += 1
 
 
 if __name__ == "__main__":
-    m = Main()
-    m.extract_fibers_contours()
-    m.start_experiment()
+    app = QtGui.QApplication(sys.argv)
+    thisapp = Main()
+    thisapp.show()
+    sys.exit(app.exec_())

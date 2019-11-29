@@ -145,6 +145,8 @@ class Camera():
                     writer.writeFrame(grab.Array)
                 
                 frames.append(grab.Array)
+        
+        self.frame_count += 1
         if len(frames) == 1:
             return frames[0]
         else:
