@@ -1,4 +1,4 @@
-debug_mode: True  # If true it allows a bunch of stuff, INCLUDING OVERWRITING EXISTING FILES
+overwrite_files: True  # ! If true OVERWRITING EXISTING FILES
 
 base_dir: D:\Dropbox (UCL - SWC)\Rotation_vte\test   # this shouldn't change that often
 exp_dir: test_violet3 # this is specific to each experiment
@@ -14,7 +14,7 @@ detect_fibers_manual: True # if false autmatic detection is attempted, but this 
 
 # VISUALIZATION CONFIG
 visual_config:
-    n_display_points: 600
+    n_display_points: 200
     window_width: 1000
     window_height: 1000
     gain: 2 # signal is multiplied by gain for visualization [keep it below 10]

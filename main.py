@@ -10,7 +10,7 @@ from PyQt5.QtGui import *
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 
-from utils.file_io import check_file_exists, check_create_folder, check_folder_empty
+from utils.file_io import check_file_exists, check_create_folder, check_folder_empty, create_csv_file
 from utils.parallel_processing_classes import Worker
 from utils.settings_parser import SettingsParser
 from camera.camera import Camera
@@ -19,7 +19,7 @@ from datamanager.img_process import ImgProcess
 
 class FrameViewer(QtGui.QMainWindow, SettingsParser):
     left = 10
-    top = 80
+    top = 40
     width = 1200
     height = 1200
 
@@ -58,17 +58,15 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
                 self.main.recording=False
                 self.main.close()
                 self.close()
-            #     self.deleteLater()
-            # elif event.key() == QtCore.Qt.Key_Enter:
-            #     self.proceed()
             event.accept()
+
 
 
 class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
     left = 1220
-    top = 80
+    top = 40
     width = 1600
-    height = 1200
+    trace_height = 300
 
     def __init__(self, parent=None, **kwargs):
         # Parse kwargs
@@ -76,6 +74,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
 
         # Load settings
         SettingsParser.__init__(self, settings_file=settings_file)
+
+        self.height = int(self.trace_height*self.n_recording_sites)
 
         # Start other parent classes
         Camera.__init__(self)
@@ -152,7 +152,10 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
         self.experiment_folder = os.path.join(self.base_dir, self.exp_dir)
         check_create_folder(self.experiment_folder)
         if not check_folder_empty(self.experiment_folder):
-            print("\n\n!!! experiment folder is not empty, might risk overwriting stuff !!!\n\n")
+            if self.overwrite_files:
+                print("\n\n!!! experiment folder is not empty, might risk overwriting stuff !!!\n\n")
+            else:
+                raise FileExistsError("Experiment folder is not empty and we cant overwrite files, please change folder name")
 
         # Create files for videos
         if self.save_to_video:
@@ -161,7 +164,17 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
 
             # Check if they exist already
             for vid in self.video_files_names:
-                if check_file_exists(vid) and not self.debug_mode: raise FileExistsError("Cannot overwrite video file: ", vid)
+                if check_file_exists(vid) and not self.overwrite_files: 
+                    raise FileExistsError("Cannot overwrite video file: ", vid)
+
+        self.csv_columns = ["ch_{}_{}".format(n, name) for name in ["signal", "motion"] for n in range(self.n_recording_sites)]
+        self.csv_path = os.path.join(self.experiment_folder, "sensors_data.csv")
+        if os.path.isfile(self.csv_path):
+            if not self.overwrite_files: raise FileExistsError("CSV file exists already")
+            else:
+                os.remove(self.csv_path)
+        create_csv_file(self.csv_path, self.csv_columns)
+
 
     def keyPressEvent(self, event):
             if event.key() == QtCore.Qt.Key_Q:
@@ -189,6 +202,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
             for i in range(self.n_recording_sites):
                 self.plots[i]['signal'].setData(self.data_dump[i]['signal'][-self.visual_config['n_display_points']:])
                 self.plots[i]['motion'].setData(self.data_dump[i]['motion'][-self.visual_config['n_display_points']:])
+
 
             # Get FPS and make the clock tick
             now = time.time()

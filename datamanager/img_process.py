@@ -9,6 +9,7 @@ from multiprocessing import Pool
 from functools import partial
 
 from utils.colors import MplColorHelper
+from utils.file_io import append_csv_file
 
 class ImgProcess:
     def __init__(self):
@@ -180,11 +181,19 @@ class ImgProcess:
         for i,s in enumerate(signal):
             if self.frame_count % 2 == 0:
                 self.data_dump[i]['signal'].append(s)
-                # self.data_dump[i]['motion'].append(0)
+                if self.frame_count > 2:
+                    self.data_dump[i]['motion'].append(self.data_dump[i]['motion'][-1])
+                else:
+                    self.data_dump[i]['motion'].append(0)
             else:
-                # self.data_dump[i]['signal'].append(0)
+                if self.frame_count > 2:
+                    self.data_dump[i]['signal'].append(self.data_dump[i]['signal'][-1])
+                else:
+                    self.data_dump[i]['signal'].append(0)
                 self.data_dump[i]['motion'].append(s/2)
-
+        csv_row_vals = [self.data_dump[k1][k2][-1] for k2 in ['signal','motion'] for k1 in self.data_dump.keys()]
+        csv_row = {k:v for k,v in zip(self.csv_columns, csv_row_vals)}
+        append_csv_file(self.csv_path, csv_row, self.csv_columns)
 
           
 if __name__ == "__main__": 
