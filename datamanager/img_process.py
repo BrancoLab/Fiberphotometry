@@ -87,6 +87,7 @@ class ImgProcess:
         frame, ROIs = self._draw_circles_on_frame(circles, frame) # circles.shape(1, 15, 3)
 
         if len(ROIs) < self.n_recording_sites:
+            print("     found {} out of {} rois, please mark the remaining rois manually".format(len(ROIs), self.n_recording_sites))
             # Manually add rois
             self.manual_fiber_detection(frame, ROIs)
 
@@ -146,6 +147,7 @@ class ImgProcess:
     def extract_fibers_contours(self):
         """[Detects the location of fibers in the frame and draws an ROI around each]
         """
+        print("Trying automated fiber detection for {} recording sites".format(self.n_recording_sites))
         # Increase camera exposure
         self.adjust_camera_exposure(self.cameras[0], 20000)
 
