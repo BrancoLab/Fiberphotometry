@@ -17,6 +17,10 @@ from camera.camera import Camera
 from datamanager.img_process import ImgProcess
 
 
+# ---------------------------------------------------------------------------- #
+#                               SECONDARY WINDOW                               #
+# ---------------------------------------------------------------------------- #
+
 class FrameViewer(QtGui.QMainWindow, SettingsParser):
     left = 10
     top = 40
@@ -41,8 +45,8 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
         self.view = self.canvas.addViewBox()
         self.view.setAspectLocked(True)
         self.view.setRange(QtCore.QRectF(0,0, 
-                        int(self.camera_config['acquisition']['frame_width']), 
-                        int(self.camera_config['acquisition']['frame_height'])))
+                        int(self.main.maxX-self.main.minX), 
+                        int(self.main.maxY-self.main.minY)))
 
         #  image plot
         self.img = pg.ImageItem(border='w')
@@ -60,13 +64,15 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
                 self.close()
             event.accept()
 
-
+# ---------------------------------------------------------------------------- #
+#                                  MAIN CLASS                                  #
+# ---------------------------------------------------------------------------- #
 
 class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
     left = 1220
     top = 40
     width = 1600
-    trace_height = 300
+    trace_height = 200
 
     def __init__(self, parent=None, **kwargs):
         # Parse kwargs
@@ -93,6 +99,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
 
         super(Main, self).__init__(parent)
         self.make_gui()
+
+    # -------------------------------- SETUP FUNCS ------------------------------- #
 
     def make_gui(self):
         self.frameview = FrameViewer(self)
@@ -175,7 +183,6 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
                 os.remove(self.csv_path)
         create_csv_file(self.csv_path, self.csv_columns)
 
-
     def keyPressEvent(self, event):
             if event.key() == QtCore.Qt.Key_Q:
                 print("Stopping")
@@ -185,15 +192,19 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
             event.accept()
 
 
+    # ------------------------------ UPDATE FUNCTION ----------------------------- #
+
     def _update(self):
         if self.recording:
+            # Grab and CROP frame
             frame = self.grab_write_frames()
+            frame = self.crop_frame(frame)
 
             # Extract the signal from the ROIs
             self.extract_signal_from_frame(frame)
 
             # add ROI to frame
-            frame = self.display_frame_opencv(frame)
+            frame = self.mark_roi_on_frame(frame)
 
             # Display frame
             self.frameview.img.setImage(frame)
@@ -202,7 +213,6 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
             for i in range(self.n_recording_sites):
                 self.plots[i]['signal'].setData(self.data_dump[i]['signal'][-self.visual_config['n_display_points']:])
                 self.plots[i]['motion'].setData(self.data_dump[i]['motion'][-self.visual_config['n_display_points']:])
-
 
             # Get FPS and make the clock tick
             now = time.time()

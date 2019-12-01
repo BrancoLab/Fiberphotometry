@@ -7,18 +7,15 @@ save_to_video: True # If false it only streams the video but doesnt save it
 output_fps: 40
 
 # EXPERIMENT METADATA
-n_recording_sites: 2
+n_recording_sites: 8
 single_fiber_diameter: 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
-detect_fibers_manual: True # if false autmatic detection is attempted, but this doesn't work very well at the moment
+detect_fibers_manual: False # if false automatic detection is attempted, but this doesn't work very well at the moment
+fast_signal_extraction: True # If True a faster but less sensitive method for signal extraction is used
 
 # VISUALIZATION CONFIG
 visual_config:
     n_display_points: 200
-    window_width: 1000
-    window_height: 1000
-    gain: 2 # signal is multiplied by gain for visualization [keep it below 10]
-
 
 # CAMERA CONFIG
 camera_config:
@@ -29,15 +26,13 @@ camera_config:
     # ? Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: False  # ! hardware triggering
     acquisition:     
-        exposure: "20000"
+        exposure: "10000"
         frame_width: "768"  # must be a multiple of 32
         frame_height: "768" # must be a multiple of 32
         gain: "12"
         frame_offset_y: "192" # must be a multiple of 32
         frame_offset_x: "576" # must be a multiple of 32
     
-    # all commands and options  https://gist.github.com/tayvano/6e2d456a9897f55025e25035478a3a50
-    # pixel formats https://ffmpeg.org/pipermail/ffmpeg-devel/2007-May/035617.html
     outputdict: # for ffmpeg
         -c:v: 'libx264'   #   low fps high res
         -crf: '17'
