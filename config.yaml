@@ -1,31 +1,57 @@
+# ---------------------------------------------------------------------------- #
+#                             EXPERIMENT FILE PATHS                            #
+# ---------------------------------------------------------------------------- #
 overwrite_files: True  # ! If true OVERWRITING EXISTING FILES
-
 base_dir: D:\Dropbox (UCL - SWC)\Rotation_vte\test   # this shouldn't change that often
 exp_dir: test_violet3 # this is specific to each experiment
 
-save_to_video: True # If false it only streams the video but doesnt save it
-output_fps: 40
 
-# EXPERIMENT METADATA
-n_recording_sites: 8
+# ---------------------------------------------------------------------------- #
+#                              EXPERIMENT METADATA                             #
+# ---------------------------------------------------------------------------- #
+n_recording_sites: 1
 single_fiber_diameter: 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 detect_fibers_manual: False # if false automatic detection is attempted, but this doesn't work very well at the moment
 fast_signal_extraction: True # If True a faster but less sensitive method for signal extraction is used
 
-# VISUALIZATION CONFIG
+# ---------------------------------------------------------------------------- #
+#                             VISUALIZATION CONFIG                             #
+# ---------------------------------------------------------------------------- #
 visual_config:
     n_display_points: 200
 
-# CAMERA CONFIG
+# ---------------------------------------------------------------------------- #
+#                             SAVE TO VIDEO PARAMS                             #
+# ---------------------------------------------------------------------------- #
+save_to_video: True # If false it only streams the video but doesn't save it
+output_fps: 40
+
+
+# ---------------------------------------------------------------------------- #
+#                                NI BOARD PARAMS                               #
+# ---------------------------------------------------------------------------- #
+niboard_config:
+    ni_device: "Dev1"
+    blue_led_trigger_port: '1'
+    blue_led_trigger_line: '0'
+    violet_led_trigger_port: '2'
+    violet_led_trigger_line: '0'
+    camera_trigger_port: '3'
+    camera_trigger_line: '0'
+
+
+# ---------------------------------------------------------------------------- #
+#                                 CAMERA CONFIG                                #
+# ---------------------------------------------------------------------------- #
 camera_config:
     video_format: .avi
     n_cameras: 1
     timeout: 100   # frame acquisition timeout
 
-    # ? Trigger mode and acquisition options -> needed for constant framerate
+    # Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: False  # ! hardware triggering
-    acquisition:     
+    acquisition:     # ||| change this parameters to set up camera acquisition as required
         exposure: "10000"
         frame_width: "768"  # must be a multiple of 32
         frame_height: "768" # must be a multiple of 32

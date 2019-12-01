@@ -11,16 +11,16 @@ from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 
 from utils.file_io import check_file_exists, check_create_folder, check_folder_empty, create_csv_file
-from utils.parallel_processing_classes import Worker
 from utils.settings_parser import SettingsParser
 from camera.camera import Camera
 from datamanager.img_process import ImgProcess
+from utils.NI.boardcontrol import NImanager
+
 
 
 # ---------------------------------------------------------------------------- #
 #                               SECONDARY WINDOW                               #
 # ---------------------------------------------------------------------------- #
-
 class FrameViewer(QtGui.QMainWindow, SettingsParser):
     left = 10
     top = 40
@@ -64,11 +64,13 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
                 self.close()
             event.accept()
 
+
+
+
 # ---------------------------------------------------------------------------- #
 #                                  MAIN CLASS                                  #
 # ---------------------------------------------------------------------------- #
-
-class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
+class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
     left = 1220
     top = 40
     width = 1600
@@ -86,6 +88,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
         # Start other parent classes
         Camera.__init__(self)
         ImgProcess.__init__(self)
+        NImanager.__init__(self)
 
         # Variables used elserwhere
         self.recording = False
@@ -140,15 +143,14 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
         # print start message
         
         start_msg = """
-    Starting recording. 
-    #####
-        To close application and terminate recording press 'q'
-    #####
-        Experiment name: {}
-        saving_video: {}
-        n_recording_sites: {}
-    """.format(self.exp_dir, self.save_to_video, self.n_recording_sites)
-
+        Starting recording. 
+        #####
+            To close application and terminate recording press 'q'
+        #####
+            Experiment name: {}
+            saving_video: {}
+            n_recording_sites: {}
+        """.format(self.exp_dir, self.save_to_video, self.n_recording_sites)
         print(start_msg)
 
         #### Start  #####################
@@ -191,11 +193,14 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
                 self.close()
             event.accept()
 
-
+    # ---------------------------------------------------------------------------- #
     # ------------------------------ UPDATE FUNCTION ----------------------------- #
-
+    # ---------------------------------------------------------------------------- #
     def _update(self):
         if self.recording:
+            # NI board interaction
+            self.update_triggers()
+
             # Grab and CROP frame
             frame = self.grab_write_frames()
             frame = self.crop_frame(frame)
@@ -227,6 +232,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess,):
             QtCore.QTimer.singleShot(1, self._update)
             self.counter += 1
 
+
+# -------------------------------- START CODE -------------------------------- #
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)

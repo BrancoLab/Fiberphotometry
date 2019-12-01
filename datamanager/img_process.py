@@ -205,6 +205,7 @@ class ImgProcess:
     # ---------------------------------------------------------------------------- #
 
     def extract_signal_from_frame(self, frame):
+        # Extract the average intensity within each ROI
         frame3d = np.repeat(frame[:, :, np.newaxis], self.n_recording_sites, axis=2)
         if not self.fast_signal_extraction:
             signal = np.float16(np.nanmean(np.ma.masked_array(frame3d, self.ROI_mask_3d), axis=(0,1)))
@@ -212,18 +213,20 @@ class ImgProcess:
             signal = np.float16(np.mean(frame3d*self.ROI_mask_3d, axis=(0,1)))
 
         for i,s in enumerate(signal):
-            if self.frame_count % 2 == 0:
-                self.data_dump[i]['signal'].append(s)
+            if self.frame_count % 2 == 0: # When the frame number is even, we are acquiring under the blue LED
+                self.data_dump[i]['signal'].append(s) # <- signal 
                 if self.frame_count > 2:
                     self.data_dump[i]['motion'].append(self.data_dump[i]['motion'][-1])
                 else:
                     self.data_dump[i]['motion'].append(0)
-            else:
+            else:  # When the frame number is odd, we are acquiring under the violet LED
                 if self.frame_count > 2:
                     self.data_dump[i]['signal'].append(self.data_dump[i]['signal'][-1])
                 else:
                     self.data_dump[i]['signal'].append(0)
-                self.data_dump[i]['motion'].append(s/2)
+                self.data_dump[i]['motion'].append(s)  # <- signal 
+
+        # save to csv file
         csv_row_vals = [self.data_dump[k1][k2][-1] for k2 in ['signal','motion'] for k1 in self.data_dump.keys()]
         csv_row = {k:v for k,v in zip(self.csv_columns, csv_row_vals)}
         append_csv_file(self.csv_path, csv_row, self.csv_columns)
