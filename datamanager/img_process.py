@@ -26,7 +26,6 @@ class ImgProcess:
     def crop_frame(self, frame):
         return frame[self.minY:self.maxY, self.minX:self.maxX]
 
-
     def _draw_circles_on_frame(self, circles, frame):
         """[Draws a circle around each ROIs for visualization porpuses]
         """
@@ -96,7 +95,6 @@ class ImgProcess:
             cv2.circle(frame, (x, y), 1, (0, 0, 255), 3)
         return frame
 
-
     def _get_fibers_colors(self):
         ch = MplColorHelper("tab10", 0, self.n_recording_sites, rgb255=True)
         colors = [ch.get_rgb(i) for i in range(self.n_recording_sites)]
@@ -155,13 +153,19 @@ class ImgProcess:
         return ROIs
 
     def compute_new_frame_size(self, frame, ROIs):
-
         self.minX, self.minY, self.maxX, self.maxY = frame.shape[0], frame.shape[1], 0, 0
         for (x,y,r) in ROIs:
             if x-r < self.minX and x-r>0: self.minX = x-r
+            elif x-r <= 0: self.minX = 0
+
             if y-r < self.minY and y-r > 0: self.minY = y-r
+            elif y-r <= 0: self.minY = 0
+
             if x+r > self.maxX and x+r < frame.shape[0]: self.maxX = x+r
+            elif x+r >= frame.shape[0]: self.maxX = frame.shape[1]
+
             if y+r > self.maxY and y+r < frame.shape[1]: self.maxY = y+r
+            elif y+r >= frame.shape[1]: self.maxY = frame.shape[1]
 
         return [(x-self.minX, y-self.minY, r) for x,y,r in ROIs]
         

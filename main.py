@@ -128,8 +128,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         for i in range(self.n_recording_sites):
             #  line plot
             self.otherplot = self.canvas.addPlot()
-            self.plots[i]['signal'] = self.otherplot.plot(pen=self.ROIs_colors[i])
             self.plots[i]['motion'] = self.otherplot.plot(pen='w')
+            self.plots[i]['signal'] = self.otherplot.plot(pen=self.ROIs_colors[i])
 
             self.canvas.nextRow()
 
