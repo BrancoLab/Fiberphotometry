@@ -60,6 +60,7 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
             if event.key() == QtCore.Qt.Key_Q:
                 print("Stopping")
                 self.main.recording=False
+                self.main.close_ffmpeg_writers()
                 self.main.close()
                 self.close()
             event.accept()
@@ -129,7 +130,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             self.otherplot = self.canvas.addPlot()
             self.plots[i]['signal'] = self.otherplot.plot(pen=self.ROIs_colors[i])
             self.plots[i]['motion'] = self.otherplot.plot(pen='w')
-            # if i < self.n_recording_sites-1:
+
             self.canvas.nextRow()
 
         #### Set Data  #####################
@@ -189,6 +190,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             if event.key() == QtCore.Qt.Key_Q:
                 print("Stopping")
                 self.recording=False
+                self.close_ffmpeg_writers()
                 self.frameview.close()
                 self.close()
             event.accept()

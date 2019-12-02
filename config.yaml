@@ -25,7 +25,7 @@ visual_config:
 #                             SAVE TO VIDEO PARAMS                             #
 # ---------------------------------------------------------------------------- #
 save_to_video: True # If false it only streams the video but doesn't save it
-output_fps: 40
+output_fps: 20
 
 
 # ---------------------------------------------------------------------------- #
@@ -33,10 +33,10 @@ output_fps: 40
 # ---------------------------------------------------------------------------- #
 niboard_config:
     ni_device: "Dev3"
-    blue_led_trigger_port: '1'
-    blue_led_trigger_line: '0'
-    violet_led_trigger_port: '2'
-    violet_led_trigger_line: '0'
+    blue_led_trigger_port: '0'
+    blue_led_trigger_line: '2'
+    violet_led_trigger_port: '0'
+    violet_led_trigger_line: '3'
     camera_trigger_port: '0'
     camera_trigger_line: '0'
 

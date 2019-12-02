@@ -637,20 +637,20 @@ class AnalogOutput(BaseTask):
 
         self.AutoRegisterDoneEvent(0)
 
-    def write(self, data):
-        """
-        Writes a numpy array of float64's to the analog output.
-        """
-        status = self.WriteAnalogF64(len(data)/len(self.channels), 0, -1,
-                                     DAQmx_Val_GroupByChannel, data, None,
-                                     None)
-        return status
+    # def write(self, data):
+    #     """
+    #     Writes a numpy array of float64's to the analog output.
+    #     """
+    #     status = self.WriteAnalogF64(len(data)/len(self.channels), 0, -1,
+    #                                  DAQmx_Val_GroupByChannel, data, None,
+    #                                  None)
+    #     return status
 
-    def Write(self, data):
-        """
-        Deprecated.
-        """
-        return self.write(data)
+    # def Write(self, data):
+    #     """
+    #     Deprecated.
+    #     """
+    #     return self.write(data)
 
     def DoneCallback(self, status):
         """
