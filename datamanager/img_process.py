@@ -171,10 +171,12 @@ class ImgProcess:
         """[Detects the location of fibers in the frame and draws an ROI around each]
         """
         print("Trying automated fiber detection for {} recording sites".format(self.n_recording_sites))
-        # Increase camera exposure
+        #  GET OVER EXPOSED FRAME
         self.adjust_camera_exposure(self.cameras[0], 20000)
 
+        self.trigger_frame()
         frame = self.grab_single_frame()
+
         # If we have multiple cameras we will get a list of frames
         if isinstance(frame, list):
             raise NotImplementedError("Cannot deal with multiple cameras here yet")

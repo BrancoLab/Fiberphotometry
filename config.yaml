@@ -2,8 +2,8 @@
 #                             EXPERIMENT FILE PATHS                            #
 # ---------------------------------------------------------------------------- #
 overwrite_files: True  # ! If true OVERWRITING EXISTING FILES
-base_dir: D:\Dropbox (UCL - SWC)\Rotation_vte\test   # this shouldn't change that often
-exp_dir: test_violet3 # this is specific to each experiment
+base_dir: E:\test   # this shouldn't change that often
+exp_dir: 191202_test # this is specific to each experiment
 
 
 # ---------------------------------------------------------------------------- #
@@ -32,12 +32,12 @@ output_fps: 40
 #                                NI BOARD PARAMS                               #
 # ---------------------------------------------------------------------------- #
 niboard_config:
-    ni_device: "Dev1"
+    ni_device: "Dev3"
     blue_led_trigger_port: '1'
     blue_led_trigger_line: '0'
     violet_led_trigger_port: '2'
     violet_led_trigger_line: '0'
-    camera_trigger_port: '3'
+    camera_trigger_port: '0'
     camera_trigger_line: '0'
 
 
@@ -50,9 +50,9 @@ camera_config:
     timeout: 100   # frame acquisition timeout
 
     # Trigger mode and acquisition options -> needed for constant framerate
-    trigger_mode: False  # ! hardware triggering
+    trigger_mode: True  # ! hardware triggering
     acquisition:     # ||| change this parameters to set up camera acquisition as required
-        exposure: "10000"
+        exposure: "5000"
         frame_width: "768"  # must be a multiple of 32
         frame_height: "768" # must be a multiple of 32
         gain: "12"

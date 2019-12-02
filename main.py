@@ -24,8 +24,8 @@ from utils.NI.boardcontrol import NImanager
 class FrameViewer(QtGui.QMainWindow, SettingsParser):
     left = 10
     top = 40
-    width = 1200
-    height = 1200
+    width = 400
+    height = 400
 
     def __init__(self, main, parent=None, **kwargs):
         super(FrameViewer, self).__init__(parent)
@@ -71,9 +71,9 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
 #                                  MAIN CLASS                                  #
 # ---------------------------------------------------------------------------- #
 class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
-    left = 1220
+    left = 420
     top = 40
-    width = 1600
+    width = 600
     trace_height = 200
 
     def __init__(self, parent=None, **kwargs):
@@ -86,9 +86,9 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.height = int(self.trace_height*self.n_recording_sites)
 
         # Start other parent classes
+        NImanager.__init__(self) # start this before the camera to make sure triggers are on
         Camera.__init__(self)
         ImgProcess.__init__(self)
-        NImanager.__init__(self)
 
         # Variables used elserwhere
         self.recording = False
