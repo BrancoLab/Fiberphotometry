@@ -234,7 +234,10 @@ class ImgProcess:
 
         # save to csv file
         csv_row_vals = [self.data_dump[k1][k2][-1] for k2 in ['signal','motion'] for k1 in self.data_dump.keys()]
-        csv_row = {k:v for k,v in zip(self.csv_columns, csv_row_vals)}
+        csv_row = {k:v for k,v in zip(self.csv_columns, csv_row_vals) if 'led' not in k}
+        if self.niboard_config['use_stim_led']:
+            csv_row['left_led_on'] = self.stim_leds_on['left']
+            csv_row['right_led_on'] = self.stim_leds_on['right']
         append_csv_file(self.csv_path, csv_row, self.csv_columns)
 
           

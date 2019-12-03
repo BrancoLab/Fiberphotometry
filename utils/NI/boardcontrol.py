@@ -38,7 +38,28 @@ class NImanager():
             _ = self.camera_do.write(self.LOW)
 
 
+            # Start DOs for stimuli LEDs
+            if self.niboard_config['use_stim_led']:
+                self.left_stim_led_do = iodaq.DigitalOutput(self.niboard_config['ni_device'],
+                        self.niboard_config['left_stim_led_port'],
+                        self.niboard_config['left_stim_led_line'],)
+                self.left_stim_led_do.StartTask()
+                _ = self.left_stim_led_do.write(self.LOW)
+
+                self.right_stim_led_do = iodaq.DigitalOutput(self.niboard_config['ni_device'],
+                        self.niboard_config['right_stim_led_port'],
+                        self.niboard_config['right_stim_led_line'],)
+                self.right_stim_led_do.StartTask()
+                _ = self.right_stim_led_do.write(self.LOW)
+
+
     # ------------------------------ UPDATE TRIGGERS ----------------------------- #
+    def toggle_leds(self, switch_on=[], switch_off=[]):
+        for on in switch_on:
+            on.write(self.HIGH)
+        for off in switch_off:
+            off.write(self.LOW)
+
     def trigger_frame(self):
         self.camera_do.write(self.HIGH)
         self.camera_do.write(self.LOW)

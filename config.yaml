@@ -9,8 +9,8 @@ exp_dir: 191202_test # this is specific to each experiment
 # ---------------------------------------------------------------------------- #
 #                              EXPERIMENT METADATA                             #
 # ---------------------------------------------------------------------------- #
-n_recording_sites: 4
-single_fiber_diameter: 125 # 275  # diameter in pixels of one fiber on the frame
+n_recording_sites: 1
+single_fiber_diameter: 275 # 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 detect_fibers_manual: False # if false automatic detection is attempted, but this doesn't work very well at the moment
 fast_signal_extraction: True # If True a faster but less sensitive method for signal extraction is used
@@ -39,6 +39,12 @@ niboard_config:
     violet_led_trigger_line: '3'
     camera_trigger_port: '0'
     camera_trigger_line: '0'
+
+    use_stim_led: True
+    left_stim_led_port: '0'
+    left_stim_led_line: '4'
+    right_stim_led_port: '0'
+    right_stim_led_line: '5'
 
 
 # ---------------------------------------------------------------------------- #
