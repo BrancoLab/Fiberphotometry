@@ -60,6 +60,7 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
             if event.key() == QtCore.Qt.Key_Q:
                 print("Stopping")
                 self.main.recording=False
+                self.main.switch_leds_off()
                 self.main.close_ffmpeg_writers()
                 self.main.close()
                 self.close()
@@ -130,8 +131,10 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         for i in range(self.n_recording_sites):
             #  line plot
             self.otherplot = self.canvas.addPlot()
-            self.plots[i]['motion'] = self.otherplot.plot(pen='w')
-            self.plots[i]['signal'] = self.otherplot.plot(pen=self.ROIs_colors[i])
+            self.plots[i]['motion'] = self.otherplot.plot(pen=self.ROIs_colors[i])
+            
+            self.otherplot = self.canvas.addPlot()
+            self.plots[i]['signal'] = self.otherplot.plot(pen='w')
 
             self.canvas.nextRow()
 
@@ -193,36 +196,40 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         create_csv_file(self.csv_path, self.csv_columns)
 
     def keyPressEvent(self, event):
-            if event.key() == QtCore.Qt.Key_Q:
-                print("Stopping")
-                self.recording=False
-                self.close_ffmpeg_writers()
-                self.frameview.close()
-                self.close()
-            elif event.key() == QtCore.Qt.Key_L and self.niboard_config['use_stim_led']:
-                self.toggle_leds(switch_on=[self.left_stim_led_do], switch_off=[self.right_stim_led_do])
-                self.stim_leds_on['left']=1
-                self.stim_leds_on['right']=0
-                print("LEFT led ON, RIGHT led OFF")
+        # CLOSE APPLICATION
+        if event.key() == QtCore.Qt.Key_Q:
+            print("Stopping")
+            self.recording=False
+            self.switch_leds_off()
+            self.close_ffmpeg_writers()
+            self.frameview.close()
+            self.close()
 
-            elif event.key() == QtCore.Qt.Key_R and self.niboard_config['use_stim_led']:
-                self.toggle_leds(switch_on=[self.right_stim_led_do], switch_off=[self.left_stim_led_do])
-                self.stim_leds_on['left']=0
-                self.stim_leds_on['right']=1
-                print("RIGHT led ON, LEFT led OFF")
+        # STIMULI LEDs CONTROLS
+        elif event.key() == QtCore.Qt.Key_L and self.niboard_config['use_stim_led']:
+            self.toggle_leds(switch_on=[self.left_stim_led_do], switch_off=[self.right_stim_led_do])
+            self.stim_leds_on['left']=1
+            self.stim_leds_on['right']=0
+            print("LEFT led ON, RIGHT led OFF")
 
-            elif event.key() == QtCore.Qt.Key_B and self.niboard_config['use_stim_led']:
-                self.toggle_leds(switch_on=[self.left_stim_led_do, self.right_stim_led_do])
-                self.stim_leds_on['left']=1
-                self.stim_leds_on['right']=1
-                print("BOTH led ON")
+        elif event.key() == QtCore.Qt.Key_R and self.niboard_config['use_stim_led']:
+            self.toggle_leds(switch_on=[self.right_stim_led_do], switch_off=[self.left_stim_led_do])
+            self.stim_leds_on['left']=0
+            self.stim_leds_on['right']=1
+            print("RIGHT led ON, LEFT led OFF")
 
-            elif event.key() == QtCore.Qt.Key_N and self.niboard_config['use_stim_led']:
-                self.toggle_leds(switch_off=[self.left_stim_led_do, self.right_stim_led_do])
-                self.stim_leds_on['left']=0
-                self.stim_leds_on['right']=0
-                print("BOTH led OFF")
-            event.accept()
+        elif event.key() == QtCore.Qt.Key_B and self.niboard_config['use_stim_led']:
+            self.toggle_leds(switch_on=[self.left_stim_led_do, self.right_stim_led_do])
+            self.stim_leds_on['left']=1
+            self.stim_leds_on['right']=1
+            print("BOTH led ON")
+
+        elif event.key() == QtCore.Qt.Key_N and self.niboard_config['use_stim_led']:
+            self.toggle_leds(switch_off=[self.left_stim_led_do, self.right_stim_led_do])
+            self.stim_leds_on['left']=0
+            self.stim_leds_on['right']=0
+            print("BOTH led OFF")
+        event.accept()
 
     # ---------------------------------------------------------------------------- #
     # ------------------------------ UPDATE FUNCTION ----------------------------- #
@@ -246,9 +253,10 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             self.frameview.img.setImage(frame)
 
             # Update plots
-            for i in range(self.n_recording_sites):
-                self.plots[i]['signal'].setData(self.data_dump[i]['signal'][-self.visual_config['n_display_points']:])
-                self.plots[i]['motion'].setData(self.data_dump[i]['motion'][-self.visual_config['n_display_points']:])
+            if self.frame_count > self.visual_config['n_display_points']:
+                for i in range(self.n_recording_sites):
+                    self.plots[i]['signal'].setData(self.data_dump[i]['signal'][-self.visual_config['n_display_points']:])
+                    self.plots[i]['motion'].setData(self.data_dump[i]['motion'][-self.visual_config['n_display_points']:])
 
             # Get FPS and make the clock tick
             now = time.time()

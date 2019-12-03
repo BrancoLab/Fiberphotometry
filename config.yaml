@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------- #
 overwrite_files: True  # ! If true OVERWRITING EXISTING FILES
 base_dir: E:\test   # this shouldn't change that often
-exp_dir: 191202_test # this is specific to each experiment
+exp_dir: 191203_test_4 # this is specific to each experiment
 
 
 # ---------------------------------------------------------------------------- #
@@ -58,7 +58,7 @@ camera_config:
     # Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: True  # ! hardware triggering
     acquisition:     # ||| change this parameters to set up camera acquisition as required
-        exposure: "5000"
+        exposure: "20000"
         frame_width: "768"  # must be a multiple of 32
         frame_height: "768" # must be a multiple of 32
         gain: "12"

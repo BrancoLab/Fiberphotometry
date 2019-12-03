@@ -64,6 +64,14 @@ class NImanager():
         self.camera_do.write(self.HIGH)
         self.camera_do.write(self.LOW)
 
+    def switch_leds_off(self):
+        self.blue_do.write(self.LOW)
+        self.violet_do.write(self.LOW)
+
+    def switch_leds_on(self):
+        self.blue_do.write(self.HIGH)
+        self.violet_do.write(self.HIGH)
+        
     def update_triggers(self):
         """
             [Sends a trigger to the camera and switches ON and OFF the LEDs]
