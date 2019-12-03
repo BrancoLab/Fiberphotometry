@@ -31,6 +31,7 @@ class Camera():
         if not self.devices: 
             raise ValueError("Could not find any camera")
         else:
+            if self.camera_config["n_cameras"] > 2: raise NotImplementedError
             self.cameras = pylon.InstantCameraArray(self.camera_config["n_cameras"])  
 
     def get_camera_writers(self):
@@ -38,47 +39,80 @@ class Camera():
         if self.save_to_video: 
             outdict = self.camera_config['outputdict'].copy()
             outdict['-r'] = str(self.output_fps)
-            indict = {"-r":str(self.output_fps)}
             for i, file_name in enumerate(self.video_files_names):
+                if i == 0:
+                    w, h = self.camera_config["acquisition"]['frame_width'], self.camera_config["acquisition"]['frame_height']
+                else:
+                    w, h = self.camera_config["behaviour_acquisition"]['frame_width'], self.camera_config["behaviour_acquisition"]['frame_height']
+                indict = {"-r":str(self.output_fps), '-s':'{}x{}'.format(w,h)}
+
                 print("Writing to: {}".format(file_name))
-                self.cam_writers[i] = skvideo.io.FFmpegWriter(file_name, inputdict=indict, outputdict=outdict)
+                self.cam_writers[i] = skvideo.io.FFmpegWriter(file_name, inputdict=indict, outputdict=outdict,
+                    verbosity=False)
         else:
             self.cam_writers = {str(i):None for i in np.arange(self.camera_config["n_cameras"])}
 
     def adjust_camera_exposure(self, camera, exposure):
         camera.StopGrabbing()
-        camera.ExposureTime.FromString(str(exposure))
+        try:
+            camera.ExposureTime.FromString(str(exposure))          
+        except:
+            pass
         camera.Open()
         camera.StartGrabbing()
 
 
     def setup_cameras(self):
         # set up cameras
+        camera_names = [d.GetUserDefinedName() for d in self.devices]
         for i, cam in enumerate(self.cameras):
-            cam.Attach(self.tlFactory.CreateDevice(self.devices[i]))
-            print("Using camera: ", cam.GetDeviceInfo().GetModelName())
+            if i == 0:
+                camera = self.camera_config["calcium_camera"]
+                acquisition = self.camera_config["acquisition"]
+            else:
+                camera = self.camera_config["behaviour_camera"]
+                acquisition = self.camera_config["behaviour_acquisition"]
+
+            try:
+                idx = camera_names.index(camera)
+            except:
+                raise ValueError("Could not find camera {} among devices: {}".format(camera, camera_names))
+
+            cam.Attach(self.tlFactory.CreateDevice(self.devices[idx]))
+            print("Using camera: ", cam.GetDeviceInfo().GetUserDefinedName())
             cam.Open()
             cam.RegisterConfiguration(pylon.ConfigurationEventHandler(), 
                                         pylon.RegistrationMode_ReplaceAll, 
                                         pylon.Cleanup_Delete)
 
             # Set up Exposure and frame size
-            cam.ExposureTime.FromString(self.camera_config["acquisition"]["exposure"])
-            cam.Width.FromString(self.camera_config["acquisition"]["frame_width"])
-            cam.Height.FromString(self.camera_config["acquisition"]["frame_height"])
-            cam.Gain.FromString(self.camera_config["acquisition"]["gain"])
-            cam.OffsetY.FromString(self.camera_config["acquisition"]["frame_offset_y"])
-            cam.OffsetX.FromString(self.camera_config["acquisition"]["frame_offset_x"])
+            try:
+                cam.ExposureTime.FromString(acquisition["exposure"])
+            except:
+                pass
+            cam.Width.FromString(acquisition["frame_width"])
+            cam.Height.FromString(acquisition["frame_height"])
+            try:
+                cam.Gain.FromString(acquisition["gain"])
+            except:
+                pass
+                # cam.RawGain.FromString(acquisition["gain"])
+            cam.OffsetY.FromString(acquisition["frame_offset_y"])
+            cam.OffsetX.FromString(acquisition["frame_offset_x"])
+
 
             # ? Trigger mode set up
             if self.camera_config["trigger_mode"]:
                 # Triggering
-                cam.TriggerSelector.FromString('FrameStart')
-                cam.TriggerMode.FromString('On')
-                cam.LineSelector.FromString('Line4')
-                cam.LineMode.FromString('Input')
-                cam.TriggerSource.FromString('Line4')
-                cam.TriggerActivation.FromString('RisingEdge')
+                try:
+                    cam.TriggerSelector.FromString('FrameStart')
+                    cam.TriggerMode.FromString('On')
+                    cam.LineSelector.FromString('Line4')
+                    cam.LineMode.FromString('Input')
+                    cam.TriggerSource.FromString('Line4')
+                    cam.TriggerActivation.FromString('RisingEdge')
+                except:
+                    pass
 
                 # ! Settings to make sure framerate is correct
                 # https://github.com/basler/pypylon/blob/master/samples/grab.py
@@ -87,13 +121,13 @@ class Camera():
             else:
                 cam.TriggerMode.FromString("Off")
                 cam.OutputQueueSize = 10
-                cam.MaxNumBuffer = 3 # Default is 10
+                cam.MaxNumBuffer = 10 # Default is 10
 
             # Start grabbing + GRABBING OPTIONS
             cam.Open()
             cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
 
-            # ! if you want to extract timestamps for the frames: https://github.com/basler/pypylon/blob/master/samples/grabchunkimage.py
+
 
     def print_current_fps(self):
         now = time.time()
@@ -114,8 +148,8 @@ class Camera():
         for i, cam in enumerate(self.cameras): 
             try:
                 grab = cam.RetrieveResult(self.camera_config["timeout"])
-            except:
-                raise ValueError("Grab failed")
+            except Exception as e:
+                raise ValueError("Grab failed for camera: {}  with exception: {}".format(cam.GetDeviceInfo().GetUserDefinedName(), e))
 
             if not grab.GrabSucceeded():
                 break
@@ -131,25 +165,29 @@ class Camera():
         """[Grabs a single frame from each camera and writes it to file]
         """
         frames = []
-        for i, (writer, cam) in enumerate(zip(self.cam_writers.values(), self.cameras)): 
+        for i, ((writerkey, writer), cam) in enumerate(zip(self.cam_writers.items(), self.cameras)): 
             try:
                 grab = cam.RetrieveResult(self.camera_config["timeout"])
-            except:
-                raise ValueError("Grab failed")
+            except Exception as e:
+                raise ValueError("Grab failed for camera: {}  with exception: {}".format(cam.GetDeviceInfo().GetUserDefinedName(), e))
 
             if not grab.GrabSucceeded():
-                break
+                raise ValueError("Grab failed for camera: {}".format(cam.GetDeviceInfo().GetUserDefinedName()))
             else:
                 if self.save_to_video:
-                    writer.writeFrame(grab.Array)
-                
+                    try:
+                        writer.writeFrame(grab.Array)
+                    except Exception as e:
+                        raise ValueError("Failed to write to frame for camera {}.\n".format(cam.GetDeviceInfo().GetUserDefinedName()),\
+                            "Writer {}: {}\n".format(writerkey, writer),\
+                            "Frame size: {}\n".format(grab.Array.shape),\
+                            "excpetion: ", e)
                 frames.append(grab.Array)
         
         self.frame_count += 1
         if len(frames) == 1:
             return frames[0]
         else:
-            raise NotImplementedError("Only made stuff to work with one camera sorry")
             return frames
 
     def close_pylon_windows(self):

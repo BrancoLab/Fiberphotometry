@@ -185,11 +185,14 @@ class ImgProcess:
         self.switch_leds_off()
         self.adjust_camera_exposure(self.cameras[0], self.camera_config["acquisition"]["exposure"])
 
-        frame = self.grab_single_frame()
+        self.trigger_frame()
+        frames = self.grab_single_frame()
 
         # If we have multiple cameras we will get a list of frames
-        if isinstance(frame, list):
-            raise NotImplementedError("Cannot deal with multiple cameras here yet")
+        if isinstance(frames, list):
+            frame = frames[0]
+        else:
+            frame = frames
 
         # Process the frame to detect fibers
         ROIs = self.automatic_fiber_detection(frame)

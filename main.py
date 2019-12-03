@@ -34,6 +34,12 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
 
         self.main = main
 
+        self.width = kwargs.pop("width", self.width)
+        self.height = kwargs.pop("height", self.height)
+        self.top = kwargs.pop("top", self.top)
+        x_extension = kwargs.pop("x_extension", self.main.maxX-self.main.minX)
+        y_extension = kwargs.pop("y_extension", self.main.maxY-self.main.minY)
+
         #### Create Gui Elements ###########
         self.mainbox = QtGui.QWidget()
         self.setCentralWidget(self.mainbox)
@@ -45,8 +51,8 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
         self.view = self.canvas.addViewBox()
         self.view.setAspectLocked(True)
         self.view.setRange(QtCore.QRectF(0,0, 
-                        int(self.main.maxX-self.main.minX), 
-                        int(self.main.maxY-self.main.minY)))
+                        int(x_extension), 
+                        int(y_extension)))
 
         #  image plot
         self.img = pg.ImageItem(border='w')
@@ -62,8 +68,7 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
                 self.main.recording=False
                 self.main.switch_leds_off()
                 self.main.close_ffmpeg_writers()
-                self.main.close()
-                self.close()
+                for window in self.main.gui_windows: window.close()
             event.accept()
 
 
@@ -110,8 +115,16 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
     # -------------------------------- SETUP FUNCS ------------------------------- #
 
     def make_gui(self):
+        # create windows to visualize frames
         self.frameview = FrameViewer(self)
         self.frameview.show()
+
+        self.behav_frameview = FrameViewer(self, top=480, height=550, width=300, 
+                        x_extension=self.camera_config['behaviour_acquisition']['frame_height'],
+                        y_extension=self.camera_config['behaviour_acquisition']['frame_width'])
+        self.behav_frameview.show()
+
+        self.gui_windows = [self.frameview, self.behav_frameview, self]
 
         #### Create Gui Elements ###########
         self.mainbox = QtGui.QWidget()
@@ -202,8 +215,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             self.recording=False
             self.switch_leds_off()
             self.close_ffmpeg_writers()
-            self.frameview.close()
-            self.close()
+            for window in self.gui_windows: window.close()
 
         # STIMULI LEDs CONTROLS
         elif event.key() == QtCore.Qt.Key_L and self.niboard_config['use_stim_led']:
@@ -239,8 +251,15 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             # NI board interaction
             self.update_triggers()
 
-            # Grab and CROP frame
-            frame = self.grab_write_frames()
+            # Grab and CROP frames
+            frames = self.grab_write_frames()
+            if isinstance(frames, list):
+                frame = frames[0]
+                behav_frame = frames[1]
+            else:
+                frame = frames
+                behav_frame = None
+                
             frame = self.crop_frame(frame)
 
             # Extract the signal from the ROIs
@@ -251,6 +270,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
 
             # Display frame
             self.frameview.img.setImage(frame)
+            if behav_frame is not None:
+                self.behav_frameview.img.setImage(behav_frame)
 
             # Update plots
             if self.frame_count > self.visual_config['n_display_points']:

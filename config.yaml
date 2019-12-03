@@ -52,11 +52,13 @@ niboard_config:
 # ---------------------------------------------------------------------------- #
 camera_config:
     video_format: .avi
-    n_cameras: 1
-    timeout: 100   # frame acquisition timeout
+    n_cameras: 2
+    timeout: 500   # frame acquisition timeout
 
     # Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: True  # ! hardware triggering
+
+    calcium_camera: fiberphotometry_calcium
     acquisition:     # ||| change this parameters to set up camera acquisition as required
         exposure: "20000"
         frame_width: "768"  # must be a multiple of 32
@@ -64,6 +66,15 @@ camera_config:
         gain: "12"
         frame_offset_y: "192" # must be a multiple of 32
         frame_offset_x: "576" # must be a multiple of 32
+
+    behaviour_camera: FiberPhotometry
+    behaviour_acquisition:     # ||| change this parameters to set up camera acquisition as required
+        exposure: "20000"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
+        frame_width: "1024"  # must be a multiple of 32
+        frame_height: "512" # must be a multiple of 32
+        gain: "12"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
+        frame_offset_y: "224" # must be a multiple of 32
+        frame_offset_x: "128" # must be a multiple of 32
     
     outputdict: # for ffmpeg
         -c:v: 'libx264'   #   low fps high res
