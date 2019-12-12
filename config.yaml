@@ -40,11 +40,7 @@ niboard_config:
     camera_trigger_port: '0'
     camera_trigger_line: '0'
 
-    use_stim_led: True
-    left_stim_led_port: '0'
-    left_stim_led_line: '4'
-    right_stim_led_port: '0'
-    right_stim_led_line: '5'
+
 
 
 # ---------------------------------------------------------------------------- #

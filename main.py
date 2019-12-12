@@ -217,30 +217,6 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             self.close_ffmpeg_writers()
             for window in self.gui_windows: window.close()
 
-        # STIMULI LEDs CONTROLS
-        elif event.key() == QtCore.Qt.Key_L and self.niboard_config['use_stim_led']:
-            self.toggle_leds(switch_on=[self.left_stim_led_do], switch_off=[self.right_stim_led_do])
-            self.stim_leds_on['left']=1
-            self.stim_leds_on['right']=0
-            print("LEFT led ON, RIGHT led OFF")
-
-        elif event.key() == QtCore.Qt.Key_R and self.niboard_config['use_stim_led']:
-            self.toggle_leds(switch_on=[self.right_stim_led_do], switch_off=[self.left_stim_led_do])
-            self.stim_leds_on['left']=0
-            self.stim_leds_on['right']=1
-            print("RIGHT led ON, LEFT led OFF")
-
-        elif event.key() == QtCore.Qt.Key_B and self.niboard_config['use_stim_led']:
-            self.toggle_leds(switch_on=[self.left_stim_led_do, self.right_stim_led_do])
-            self.stim_leds_on['left']=1
-            self.stim_leds_on['right']=1
-            print("BOTH led ON")
-
-        elif event.key() == QtCore.Qt.Key_N and self.niboard_config['use_stim_led']:
-            self.toggle_leds(switch_off=[self.left_stim_led_do, self.right_stim_led_do])
-            self.stim_leds_on['left']=0
-            self.stim_leds_on['right']=0
-            print("BOTH led OFF")
         event.accept()
 
     # ---------------------------------------------------------------------------- #

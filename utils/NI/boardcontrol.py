@@ -17,7 +17,7 @@ class NImanager():
 
     def __init__(self, **kwargs):
         if ni_ready:
-            # Start Analog Output tasks to send triggers to LEDs
+            # Start Analog Output tasks to send triggers to LEDs cubes (for fiber photometry)
             self.blue_do = iodaq.DigitalOutput(self.niboard_config['ni_device'],
                                     self.niboard_config['blue_led_trigger_port'],
                                     self.niboard_config['blue_led_trigger_line'],)
@@ -36,21 +36,6 @@ class NImanager():
                                     self.niboard_config['camera_trigger_line'],)
             self.camera_do.StartTask()
             _ = self.camera_do.write(self.LOW)
-
-
-            # Start DOs for stimuli LEDs
-            if self.niboard_config['use_stim_led']:
-                self.left_stim_led_do = iodaq.DigitalOutput(self.niboard_config['ni_device'],
-                        self.niboard_config['left_stim_led_port'],
-                        self.niboard_config['left_stim_led_line'],)
-                self.left_stim_led_do.StartTask()
-                _ = self.left_stim_led_do.write(self.LOW)
-
-                self.right_stim_led_do = iodaq.DigitalOutput(self.niboard_config['ni_device'],
-                        self.niboard_config['right_stim_led_port'],
-                        self.niboard_config['right_stim_led_line'],)
-                self.right_stim_led_do.StartTask()
-                _ = self.right_stim_led_do.write(self.LOW)
 
 
     # ------------------------------ UPDATE TRIGGERS ----------------------------- #
