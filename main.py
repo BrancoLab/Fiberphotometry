@@ -99,6 +99,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.frame_count = 0
         self.data_dump = {i:{'signal':[], 'motion':[]} for i in range(self.n_recording_sites)}
         self.ldr_signal_dump = []
+        self.prev_behav_frame = None
+        self.movement_data_dump = []
         self.stim_leds_on = {'left':0, 'right':0}
 
 
@@ -138,8 +140,11 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.label = QtGui.QLabel()
         self.mainbox.layout().addWidget(self.label)
 
+        # Add plots for LDR and mouse movement
         otherplot = self.canvas.addPlot()
-        self.ldr_plot = otherplot.plot(pen='w')
+        self.mvmt_plot = otherplot.plot(pen='g')
+        otherplot = self.canvas.addPlot()
+        self.ldr_plot = otherplot.plot(pen='m')
         self.canvas.nextRow()
 
         self.plots={i:{'signal':None, 'motion':None} for i in range(self.n_recording_sites)}
@@ -250,9 +255,19 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             self.frameview.img.setImage(frame)
             if behav_frame is not None:
                 self.behav_frameview.img.setImage(behav_frame)
+                if self.prev_behav_frame is None:
+                    self.prev_behav_frame = behav_frame
+                    diff = 0
+                else:
+                    diff = np.mean(behav_frame - self.prev_behav_frame)
+                    self.prev_behav_frame = behav_frame
+            else:
+                diff = 0
+            self.movement_data_dump.append(diff)
 
             # Update plots
             self.ldr_plot.setData(self.ldr_signal_dump[-self.visual_config['n_display_points']:])
+            self.mvmt_plot.setData(self.movement_data_dump[-self.visual_config['n_display_points']:])
 
             if self.frame_count > self.visual_config['n_display_points']:
                 for i in range(self.n_recording_sites):
