@@ -22,7 +22,7 @@ from utils.NI.boardcontrol import NImanager
 #                               SECONDARY WINDOW                               #
 # ---------------------------------------------------------------------------- #
 class FrameViewer(QtGui.QMainWindow, SettingsParser):
-    left = 10
+    left = 400
     top = 40
     width = 400
     height = 400
@@ -40,7 +40,7 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
         x_extension = kwargs.pop("x_extension", self.main.maxX-self.main.minX)
         y_extension = kwargs.pop("y_extension", self.main.maxY-self.main.minY)
 
-        #### Create Gui Elements ###########
+        #### Create Gui Elements ###########q
         self.mainbox = QtGui.QWidget()
         self.setCentralWidget(self.mainbox)
         self.mainbox.setLayout(QtGui.QVBoxLayout())
@@ -119,7 +119,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.frameview = FrameViewer(self)
         self.frameview.show()
 
-        self.behav_frameview = FrameViewer(self, top=480, height=550, width=300, 
+        self.behav_frameview = FrameViewer(self, top=480, height=550, width=550, 
                         x_extension=self.camera_config['behaviour_acquisition']['frame_height'],
                         y_extension=self.camera_config['behaviour_acquisition']['frame_width'])
         self.behav_frameview.show()

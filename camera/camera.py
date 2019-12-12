@@ -75,10 +75,14 @@ class Camera():
 
             try:
                 idx = camera_names.index(camera)
+                print(idx)
             except:
-                raise ValueError("Could not find camera {} among devices: {}".format(camera, camera_names))
+                raise ValueError("\n\nCould not find camera {} among devices: {}".format(camera, camera_names))
 
-            cam.Attach(self.tlFactory.CreateDevice(self.devices[idx]))
+            try:
+                cam.Attach(self.tlFactory.CreateDevice(self.devices[idx]))
+            except Exception as e:
+                raise ValueError("\n\nFailed to open camera {} with idx {}. Error message:\n{}".format(camera, idx, e))
             print("Using camera: ", cam.GetDeviceInfo().GetUserDefinedName())
             cam.Open()
             cam.RegisterConfiguration(pylon.ConfigurationEventHandler(), 

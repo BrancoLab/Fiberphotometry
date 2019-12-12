@@ -3,14 +3,14 @@
 # ---------------------------------------------------------------------------- #
 overwrite_files: True  # ! If true OVERWRITING EXISTING FILES
 base_dir: E:\test   # this shouldn't change that often
-exp_dir: 191203_test_4 # this is specific to each experiment
+exp_dir: testt  # this is specific to each experiment
 
 
 # ---------------------------------------------------------------------------- #
 #                              EXPERIMENT METADATA                             #
 # ---------------------------------------------------------------------------- #
 n_recording_sites: 1
-single_fiber_diameter: 275 # 275  # diameter in pixels of one fiber on the frame
+single_fiber_diameter: 200 # 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 detect_fibers_manual: False # if false automatic detection is attempted, but this doesn't work very well at the moment
 fast_signal_extraction: True # If True a faster but less sensitive method for signal extraction is used
@@ -52,13 +52,13 @@ niboard_config:
 # ---------------------------------------------------------------------------- #
 camera_config:
     video_format: .avi
-    n_cameras: 2
-    timeout: 500   # frame acquisition timeout
+    n_cameras: 1
+    timeout: 1000   # frame acquisition timeout
 
     # Trigger mode and acquisition options -> needed for constant framerate
     trigger_mode: True  # ! hardware triggering
 
-    calcium_camera: fiberphotometry_calcium
+    calcium_camera: fiberphotometry_ca2
     acquisition:     # ||| change this parameters to set up camera acquisition as required
         exposure: "20000"
         frame_width: "768"  # must be a multiple of 32
@@ -67,14 +67,14 @@ camera_config:
         frame_offset_y: "192" # must be a multiple of 32
         frame_offset_x: "576" # must be a multiple of 32
 
-    behaviour_camera: FiberPhotometry
+    behaviour_camera: 'fiberphotometry_behav'
     behaviour_acquisition:     # ||| change this parameters to set up camera acquisition as required
         exposure: "20000"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
-        frame_width: "1024"  # must be a multiple of 32
-        frame_height: "512" # must be a multiple of 32
+        frame_width: "768"  # 1024# must be a multiple of 32
+        frame_height: "768" # must be a multiple of 32
         gain: "12"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
-        frame_offset_y: "224" # must be a multiple of 32
-        frame_offset_x: "128" # must be a multiple of 32
+        frame_offset_y: "0" # must be a multiple of 32
+        frame_offset_x: "256" # must be a multiple of 32
     
     outputdict: # for ffmpeg
         -c:v: 'libx264'   #   low fps high res
