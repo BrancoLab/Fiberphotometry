@@ -40,6 +40,8 @@ niboard_config:
     camera_trigger_port: '0'
     camera_trigger_line: '0'
 
+    ldr_power: 0
+
 
 
 
@@ -48,7 +50,7 @@ niboard_config:
 # ---------------------------------------------------------------------------- #
 camera_config:
     video_format: .avi
-    n_cameras: 1
+    n_cameras: 2
     timeout: 1000   # frame acquisition timeout
 
     # Trigger mode and acquisition options -> needed for constant framerate

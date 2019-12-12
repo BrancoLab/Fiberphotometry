@@ -1,4 +1,5 @@
 import numpy as np
+import nidaqmx
 
 try:
     import utils.NI.nidaq as iodaq
@@ -37,8 +38,25 @@ class NImanager():
             self.camera_do.StartTask()
             _ = self.camera_do.write(self.LOW)
 
+            # Create stuff for the LDR
+            # power output
+            self.ldr_power = nidaqmx.Task()
+            self.ldr_power.ao_channels.add_ao_voltage_chan('Dev3/ao1','mychannel',0,5)
+            self.ldr_power.write(5.0)
 
-    # ------------------------------ UPDATE TRIGGERS ----------------------------- #
+
+            # analog input
+            self.ldr_ai = nidaqmx.Task()
+            self.ldr_ai.ai_channels.add_ai_voltage_chan('Dev3/ai0','ldrinput')
+
+            self._analog_chs = [self.ldr_power, self.ldr_ai]
+
+
+    # ------------------------------ UPDATE TRIGGERS and ANALOGS ----------------------------- #
+    def read_ldr_signal(self):
+        self.ldr_power.write(5.0)
+        self.ldr_signal_dump.append(self.ldr_ai.read())
+
     def toggle_leds(self, switch_on=[], switch_off=[]):
         for on in switch_on:
             on.write(self.HIGH)
@@ -70,5 +88,9 @@ class NImanager():
                 self.violet_do.write(self.HIGH)
 
             self.trigger_frame()
+            self.read_ldr_signal()
 
 
+    def close_analog_tasks(self):
+        for ch in self._analog_chs:
+            ch.stop()

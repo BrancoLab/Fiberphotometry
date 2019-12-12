@@ -65,10 +65,7 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
     def keyPressEvent(self, event):
             if event.key() == QtCore.Qt.Key_Q:
                 print("Stopping")
-                self.main.recording=False
-                self.main.switch_leds_off()
-                self.main.close_ffmpeg_writers()
-                for window in self.main.gui_windows: window.close()
+                self.main.shut_down()
             event.accept()
 
 
@@ -101,6 +98,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.recording = False
         self.frame_count = 0
         self.data_dump = {i:{'signal':[], 'motion':[]} for i in range(self.n_recording_sites)}
+        self.ldr_signal_dump = []
         self.stim_leds_on = {'left':0, 'right':0}
 
 
@@ -140,14 +138,18 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.label = QtGui.QLabel()
         self.mainbox.layout().addWidget(self.label)
 
+        otherplot = self.canvas.addPlot()
+        self.ldr_plot = otherplot.plot(pen='w')
+        self.canvas.nextRow()
+
         self.plots={i:{'signal':None, 'motion':None} for i in range(self.n_recording_sites)}
         for i in range(self.n_recording_sites):
             #  line plot
-            self.otherplot = self.canvas.addPlot()
-            self.plots[i]['motion'] = self.otherplot.plot(pen=self.ROIs_colors[i])
+            otherplot = self.canvas.addPlot()
+            self.plots[i]['motion'] = otherplot.plot(pen=self.ROIs_colors[i])
             
-            self.otherplot = self.canvas.addPlot()
-            self.plots[i]['signal'] = self.otherplot.plot(pen='w')
+            otherplot = self.canvas.addPlot()
+            self.plots[i]['signal'] = otherplot.plot(pen='w')
 
             self.canvas.nextRow()
 
@@ -197,9 +199,6 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
                     raise FileExistsError("Cannot overwrite video file: ", vid)
 
         self.csv_columns = ["ch_{}_{}".format(n, name) for name in ["signal", "motion"] for n in range(self.n_recording_sites)]
-        
-        if self.niboard_config['use_stim_led']:
-            self.csv_columns.extend(['left_led_on', 'right_led_on'])
 
         self.csv_path = os.path.join(self.experiment_folder, "sensors_data.csv")
         if os.path.isfile(self.csv_path):
@@ -208,14 +207,17 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
                 os.remove(self.csv_path)
         create_csv_file(self.csv_path, self.csv_columns)
 
+    def shut_down(self):
+        self.recording=False
+        self.close_analog_tasks()
+        self.switch_leds_off()
+        self.close_ffmpeg_writers()
+        for window in self.gui_windows: window.close()
+
     def keyPressEvent(self, event):
         # CLOSE APPLICATION
         if event.key() == QtCore.Qt.Key_Q:
-            print("Stopping")
-            self.recording=False
-            self.switch_leds_off()
-            self.close_ffmpeg_writers()
-            for window in self.gui_windows: window.close()
+            self.shut_down()
 
         event.accept()
 
@@ -250,6 +252,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
                 self.behav_frameview.img.setImage(behav_frame)
 
             # Update plots
+            self.ldr_plot.setData(self.ldr_signal_dump[-self.visual_config['n_display_points']:])
+
             if self.frame_count > self.visual_config['n_display_points']:
                 for i in range(self.n_recording_sites):
                     self.plots[i]['signal'].setData(self.data_dump[i]['signal'][-self.visual_config['n_display_points']:])
@@ -267,6 +271,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             self.label.setText(tx)
             QtCore.QTimer.singleShot(1, self._update)
             self.counter += 1
+
 
 
 # -------------------------------- START CODE -------------------------------- #
