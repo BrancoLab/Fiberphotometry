@@ -10,11 +10,12 @@ from PyQt5.QtGui import *
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 
-from utils.file_io import check_file_exists, check_create_folder, check_folder_empty, create_csv_file
+from utils.file_io import check_file_exists, check_create_folder, check_folder_empty, create_csv_file, append_csv_file
 from utils.settings_parser import SettingsParser
 from camera.camera import Camera
 from datamanager.img_process import ImgProcess
 from utils.NI.boardcontrol import NImanager
+from stimuli import grating
 
 
 
@@ -40,7 +41,7 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
         x_extension = kwargs.pop("x_extension", self.main.maxX-self.main.minX)
         y_extension = kwargs.pop("y_extension", self.main.maxY-self.main.minY)
 
-        #### Create Gui Elements ###########q
+        #### Create Gui Elements ###########
         self.mainbox = QtGui.QWidget()
         self.setCentralWidget(self.mainbox)
         self.mainbox.setLayout(QtGui.QVBoxLayout())
@@ -63,9 +64,11 @@ class FrameViewer(QtGui.QMainWindow, SettingsParser):
         self.setWindowTitle("Frame")
 
     def keyPressEvent(self, event):
-            if event.key() == QtCore.Qt.Key_Q:
-                print("Stopping")
-                self.main.shut_down()
+        if event.key() == QtCore.Qt.Key_Q:
+            print("Stopping")
+            self.main.shut_down()
+        elif event.key() == QtCore.Qt.Key_G:
+            grating.run()
             event.accept()
 
 
@@ -103,7 +106,6 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.movement_data_dump = []
         self.stim_leds_on = {'left':0, 'right':0}
 
-
         # Start stuff
         self.setup_experiment_files()
         self.extract_fibers_contours()
@@ -120,8 +122,8 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.frameview.show()
 
         self.behav_frameview = FrameViewer(self, top=480, height=550, width=550, 
-                        x_extension=self.camera_config['behaviour_acquisition']['frame_height'],
-                        y_extension=self.camera_config['behaviour_acquisition']['frame_width'])
+                        x_extension=self.behav_crop['x1']-self.behav_crop['x0'],
+                        y_extension=self.behav_crop['y1']-self.behav_crop['y0'])
         self.behav_frameview.show()
 
         self.gui_windows = [self.frameview, self.behav_frameview, self]
@@ -182,6 +184,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         #### Start  #####################
         self._update()
 
+
     def setup_experiment_files(self):
         """[Takes care of creating folder and files for the experiment]
         """
@@ -204,7 +207,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
                     raise FileExistsError("Cannot overwrite video file: ", vid)
 
         self.csv_columns = ["ch_{}_{}".format(n, name) for name in ["signal", "motion"] for n in range(self.n_recording_sites)]
-
+        self.csv_columns.extend(['ldr', 'behav_mvmt'])
         self.csv_path = os.path.join(self.experiment_folder, "sensors_data.csv")
         if os.path.isfile(self.csv_path):
             if not self.overwrite_files: raise FileExistsError("CSV file exists already")
@@ -223,8 +226,18 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         # CLOSE APPLICATION
         if event.key() == QtCore.Qt.Key_Q:
             self.shut_down()
+        elif event.key() == QtCore.Qt.Key_G:
+            grating.run()
 
         event.accept()
+
+    def append_to_csvfilse(self):
+        # save to csv file
+        csv_row_vals = [self.data_dump[k1][k2][-1] for k2 in ['signal','motion'] for k1 in self.data_dump.keys()]
+        csv_row_vals.extend([self.ldr_signal_dump[-1], self.movement_data_dump[-1]])
+        csv_row = {k:v for k,v in zip(self.csv_columns, csv_row_vals) if 'led' not in k}
+        append_csv_file(self.csv_path, csv_row, self.csv_columns)
+
 
     # ---------------------------------------------------------------------------- #
     # ------------------------------ UPDATE FUNCTION ----------------------------- #
@@ -254,16 +267,20 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             # Display frame
             self.frameview.img.setImage(frame)
             if behav_frame is not None:
+                behav_frame = behav_frame[self.behav_crop['x0']:self.behav_crop['x1'], self.behav_crop['y0']:self.behav_crop['y1']]
                 self.behav_frameview.img.setImage(behav_frame)
                 if self.prev_behav_frame is None:
                     self.prev_behav_frame = behav_frame
                     diff = 0
                 else:
-                    diff = np.mean(behav_frame - self.prev_behav_frame)
+                    diff = np.sum((behav_frame - self.prev_behav_frame)**2)
                     self.prev_behav_frame = behav_frame
             else:
                 diff = 0
             self.movement_data_dump.append(diff)
+
+            # Append to csv
+            self.append_to_csvfilse()
 
             # Update plots
             self.ldr_plot.setData(self.ldr_signal_dump[-self.visual_config['n_display_points']:])

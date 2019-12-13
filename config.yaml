@@ -2,8 +2,8 @@
 #                             EXPERIMENT FILE PATHS                            #
 # ---------------------------------------------------------------------------- #
 overwrite_files: True  # ! If true OVERWRITING EXISTING FILES
-base_dir: E:\test   # this shouldn't change that often
-exp_dir: testt  # this is specific to each experiment
+base_dir: E:\191213   # this shouldn't change that often
+exp_dir: '191213_994833_left'  # this is specific to each experiment
 
 
 # ---------------------------------------------------------------------------- #
@@ -14,6 +14,12 @@ single_fiber_diameter: 200 # 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 detect_fibers_manual: False # if false automatic detection is attempted, but this doesn't work very well at the moment
 fast_signal_extraction: True # If True a faster but less sensitive method for signal extraction is used
+
+behav_crop: 
+    x0: 50
+    x1: 375
+    y0: 425
+    y1: 725
 
 # ---------------------------------------------------------------------------- #
 #                             VISUALIZATION CONFIG                             #

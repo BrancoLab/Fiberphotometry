@@ -239,10 +239,6 @@ class ImgProcess:
                     self.data_dump[i]['signal'].append(0)
                 self.data_dump[i]['motion'].append(s)  # <- signal 
 
-        # save to csv file
-        csv_row_vals = [self.data_dump[k1][k2][-1] for k2 in ['signal','motion'] for k1 in self.data_dump.keys()]
-        csv_row = {k:v for k,v in zip(self.csv_columns, csv_row_vals) if 'led' not in k}
-        append_csv_file(self.csv_path, csv_row, self.csv_columns)
 
           
 if __name__ == "__main__": 
