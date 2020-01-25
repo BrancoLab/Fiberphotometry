@@ -143,22 +143,34 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
         self.mainbox.layout().addWidget(self.label)
 
         # Add plots for LDR and mouse movement
-        otherplot = self.canvas.addPlot()
-        self.mvmt_plot = otherplot.plot(pen='g')
-        otherplot = self.canvas.addPlot()
-        self.ldr_plot = otherplot.plot(pen='m')
-        self.canvas.nextRow()
+        # otherplot = self.canvas.addPlot()
+        # self.mvmt_plot = otherplot.plot(pen='w')
+        # otherplot = self.canvas.addPlot()
+        # self.ldr_plot = otherplot.plot(pen='y')
+        # self.canvas.nextRow()
 
         self.plots={i:{'signal':None, 'motion':None} for i in range(self.n_recording_sites)}
-        for i in range(self.n_recording_sites):
-            #  line plot
+        for i in range(self.n_recording_sites): # use this for multiple fibers
+            #  violet led plot
             otherplot = self.canvas.addPlot()
-            self.plots[i]['motion'] = otherplot.plot(pen=self.ROIs_colors[i])
-            
-            otherplot = self.canvas.addPlot()
-            self.plots[i]['signal'] = otherplot.plot(pen='w')
+            self.plots[i]['motion'] = otherplot.plot(pen='m')  #self.ROIs_colors[i])  # replace 0 with i for multiple fibers
 
-            self.canvas.nextRow()
+        # frame movement plot 
+        otherplot = self.canvas.addPlot()
+        self.mvmt_plot = otherplot.plot(pen='w')
+        self.canvas.nextRow() # 
+
+
+        for i in range(self.n_recording_sites): # use this for multiple fibers
+            # blue led plot
+            otherplot = self.canvas.addPlot()
+            self.plots[i]['signal'] = otherplot.plot(pen='c') # replace 0 with i for multiple fibers
+
+        #  ldr plot
+        otherplot = self.canvas.addPlot()
+        self.ldr_plot = otherplot.plot(pen='y')
+
+        self.canvas.nextRow()
 
         #### Set Data  #####################
         self.counter = 0
@@ -178,6 +190,13 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             Experiment name: {}
             saving_video: {}
             n_recording_sites: {}
+        #####
+            Colors:
+                cyan    - blue LED signal
+                magenta - violet LED signal
+                white   - behav frame movement
+                yellow  - LDR signal
+                
         """.format(self.exp_dir, self.save_to_video, self.n_recording_sites)
         print(start_msg)
 
@@ -267,7 +286,7 @@ class Main( QtGui.QMainWindow, SettingsParser, Camera, ImgProcess, NImanager):
             # Display frame
             self.frameview.img.setImage(frame)
             if behav_frame is not None:
-                behav_frame = behav_frame[self.behav_crop['x0']:self.behav_crop['x1'], self.behav_crop['y0']:self.behav_crop['y1']]
+                # behav_frame = behav_frame[self.behav_crop['x0']:self.behav_crop['x1'], self.behav_crop['y0']:self.behav_crop['y1']]
                 self.behav_frameview.img.setImage(behav_frame)
                 if self.prev_behav_frame is None:
                     self.prev_behav_frame = behav_frame
