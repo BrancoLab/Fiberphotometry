@@ -75,7 +75,6 @@ class Camera():
 
             try:
                 idx = camera_names.index(camera)
-                print(idx)
             except:
                 raise ValueError("\n\nCould not find camera {} among devices: {}".format(camera, camera_names))
 

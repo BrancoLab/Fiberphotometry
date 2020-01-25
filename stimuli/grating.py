@@ -6,11 +6,11 @@ from tqdm import tqdm
 
 def run():
     # PARAMS
-    repeats_per_orientation = 30
+    repeats_per_orientation = 15
     orientations = [0, 45, 90]
     spatial_freq = 5.0 / 400.0  
-    n_frames_on = 75
-    n_frames_off = 400
+    n_frames_on = 45
+    n_frames_off = 180
     speed = 5
 
 

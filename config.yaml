@@ -2,24 +2,24 @@
 #                             EXPERIMENT FILE PATHS                            #
 # ---------------------------------------------------------------------------- #
 overwrite_files: True  # ! If true OVERWRITING EXISTING FILES
-base_dir: E:\191213   # this shouldn't change that often
-exp_dir: '191213_994833_left'  # this is specific to each experiment
+base_dir: A:\240120_fiberp   # this shouldn't change that often
+exp_dir: '240120_id_994382_freelymoving_twofibers_3'  # this is specific to each experiment
 
 
 # ---------------------------------------------------------------------------- #
 #                              EXPERIMENT METADATA                             #
 # ---------------------------------------------------------------------------- #
 n_recording_sites: 1
-single_fiber_diameter: 200 # 275  # diameter in pixels of one fiber on the frame
+single_fiber_diameter: 550 # 500 # 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 detect_fibers_manual: False # if false automatic detection is attempted, but this doesn't work very well at the moment
 fast_signal_extraction: True # If True a faster but less sensitive method for signal extraction is used
 
 behav_crop: 
-    x0: 50
-    x1: 375
-    y0: 425
-    y1: 725
+    x0: 0 # 50
+    x1: -1 # 375
+    y0: 0 # 425
+    y1: -1 # 725
 
 # ---------------------------------------------------------------------------- #
 #                             VISUALIZATION CONFIG                             #
@@ -40,9 +40,9 @@ output_fps: 20
 niboard_config:
     ni_device: "Dev3"
     blue_led_trigger_port: '0'
-    blue_led_trigger_line: '2'
+    blue_led_trigger_line: '3'
     violet_led_trigger_port: '0'
-    violet_led_trigger_line: '3'
+    violet_led_trigger_line: '2'
     camera_trigger_port: '0'
     camera_trigger_line: '0'
 
@@ -65,8 +65,8 @@ camera_config:
     calcium_camera: fiberphotometry_ca2
     acquisition:     # ||| change this parameters to set up camera acquisition as required
         exposure: "20000"
-        frame_width: "768"  # must be a multiple of 32
-        frame_height: "768" # must be a multiple of 32
+        frame_width: "1024"  # must be a multiple of 32
+        frame_height: "1024" # must be a multiple of 32
         gain: "12"
         frame_offset_y: "192" # must be a multiple of 32
         frame_offset_x: "576" # must be a multiple of 32
@@ -74,11 +74,11 @@ camera_config:
     behaviour_camera: 'fiberphotometry_behav'
     behaviour_acquisition:     # ||| change this parameters to set up camera acquisition as required
         exposure: "20000"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
-        frame_width: "768"  # 1024# must be a multiple of 32
-        frame_height: "768" # must be a multiple of 32
+        frame_width: "1440"  # 1024# must be a multiple of 32
+        frame_height: "576" # must be a multiple of 32
         gain: "12"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
-        frame_offset_y: "0" # must be a multiple of 32
-        frame_offset_x: "256" # must be a multiple of 32
+        frame_offset_y: "256" # must be a multiple of 32
+        frame_offset_x: "512" # must be a multiple of 32
     
     outputdict: # for ffmpeg
         -c:v: 'libx264'   #   low fps high res

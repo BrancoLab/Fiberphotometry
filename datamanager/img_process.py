@@ -137,16 +137,17 @@ class ImgProcess:
 
         original_frame = frame.copy()
 
-        circles=cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, cv2.HOUGH_GRADIENT, 100, 100,
-                                param1 = 50, param2 = 350, 
-                                minRadius = self.single_fiber_diameter-50, 
-                                maxRadius = self.single_fiber_diameter+20) 
-        frame, ROIs = self._draw_circles_on_frame(circles, frame) # circles.shape(1, 15, 3)
+        # circles=cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, cv2.HOUGH_GRADIENT, 100, 100,
+        #                         param1 = 50, param2 = 350, 
+        #                         minRadius = self.single_fiber_diameter-50, 
+        #                         maxRadius = self.single_fiber_diameter+20) 
+        # frame, ROIs = self._draw_circles_on_frame(circles, frame) # circles.shape(1, 15, 3)
 
-        if len(ROIs) < self.n_recording_sites:
-            print("     found {} out of {} rois, please mark the remaining rois manually".format(len(ROIs), self.n_recording_sites))
+        # if len(ROIs) < self.n_recording_sites:
+            # print("     found {} out of {} rois, please mark the remaining rois manually".format(len(ROIs), self.n_recording_sites))
             # Manually add rois
-            self.manual_fiber_detection(frame, ROIs)
+        ROIs = []
+        self.manual_fiber_detection(frame, ROIs)
 
         # Display results
         self.display_results(dict(output=frame))
@@ -180,13 +181,12 @@ class ImgProcess:
         self.switch_leds_on() # switch on the stimulation LEDs to see the fiber
 
         self.trigger_frame()
+        frames = self.grab_single_frame()
 
         # reset camera and LEDs
         self.switch_leds_off()
         self.adjust_camera_exposure(self.cameras[0], self.camera_config["acquisition"]["exposure"])
 
-        self.trigger_frame()
-        frames = self.grab_single_frame()
 
         # If we have multiple cameras we will get a list of frames
         if isinstance(frames, list):
@@ -218,12 +218,16 @@ class ImgProcess:
     # ---------------------------------------------------------------------------- #
 
     def extract_signal_from_frame(self, frame):
+
+
         # Extract the average intensity within each ROI
         frame3d = np.repeat(frame[:, :, np.newaxis], self.n_recording_sites, axis=2)
         if not self.fast_signal_extraction:
             signal = np.float16(np.nanmean(np.ma.masked_array(frame3d, self.ROI_mask_3d), axis=(0,1)))
         else:
             signal = np.float16(np.mean(frame3d*self.ROI_mask_3d, axis=(0,1)))
+
+        # signal = [0]
 
         for i,s in enumerate(signal):
             if self.frame_count % 2 == 0: # When the frame number is even, we are acquiring under the blue LED
