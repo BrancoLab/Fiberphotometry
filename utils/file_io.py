@@ -5,6 +5,8 @@ import csv
 import pandas as pd
 import yaml
 
+def listdir(folderpath):
+    return [os.path.join(folderpath,f) for f in os.listdir(folderpath)]
 
 def check_create_folder(folderpath):
     # Check if a folder exists, otherwise creates it
