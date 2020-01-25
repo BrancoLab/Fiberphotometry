@@ -29,7 +29,7 @@ for si, subdir in enumerate(get_subdirs(folder)):
         fps=14
     else:
         invert=False
-        fps=10
+        fps=14
 
     # Iterate over the sub subdirs
     for ssi, subsub in enumerate(get_subdirs(subdir)):
