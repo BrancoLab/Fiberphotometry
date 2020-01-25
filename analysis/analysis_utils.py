@@ -14,11 +14,23 @@ def get_files_in_folder(folder):
     """
     files = listdir(folder)
 
-    behavcam = [f for f in files if 'cam1' in f][0]
-    cacam = [f for f in files if 'cam0' in f][0]
+    try:
+        behavcam = [f for f in files if 'cam1' in f][0]
+    except:
+        behavcam = None
+    
+    try:
+        cacam = [f for f in files if 'cam0' in f][0]
+    except:
+        cacam = None
+        
     sensors = [f for f in files if 'sensors_data.csv' in f][0]
+    analysis = os.path.join(folder, 'analysis')
+    if not os.path.isdir(analysis):
+        os.makedirs(analysis)
 
-    return dict(behaviour=behavcam, calcium=cacam, sensors=sensors)
+
+    return dict(behaviour=behavcam, calcium=cacam, sensors=sensors, analysis=analysis)
 
 
 def get_data_from_sensors_csv(sensors_file, invert=False):

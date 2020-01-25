@@ -8,6 +8,9 @@ import yaml
 def listdir(folderpath):
     return [os.path.join(folderpath,f) for f in os.listdir(folderpath)]
 
+def get_subdirs(folderpath):
+    return [ f.path for f in os.scandir(folderpath) if f.is_dir() ]
+
 def check_create_folder(folderpath):
     # Check if a folder exists, otherwise creates it
     if not os.path.isdir(folderpath):
