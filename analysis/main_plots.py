@@ -29,6 +29,7 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
 
     # ---------------------------------------------------------------------------- #
     files, outpath, data, n_fibers = setup(folder, "_session_traces.png", overwrite, **kwargs)
+    if data is None: return
     stim_onset, stim_offset = get_stimuli_from_ldr(data['ldr'])
 
     f, axarr = create_figure(subplots=True, ncols=1, nrows=2+3*n_fibers, figsize=(20, 12), sharex=True)
@@ -80,6 +81,7 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
 def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffled=True,
                 show_individual_trials=False, post_frames=30, **kwargs):
     files, outpath, data, n_fibers = setup(folder, "_session_psth.png", overwrite, **kwargs)
+    if data is None: return
     stim_onset, stim_offset = get_stimuli_from_ldr(data['ldr'])
 
     # Get aligned trials data

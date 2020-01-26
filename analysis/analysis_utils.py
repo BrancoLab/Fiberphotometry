@@ -113,12 +113,12 @@ def setup(folder, filename, overwrite, **kwargs):
         print("\n\n Could not find enough video files at {}".format(folder))
         print("Files: {}".format(files))
         return None, None, None, None
-     
-    # Get sensors data and make sure everything is in place
-    data, n_fibers = get_data_from_sensors_csv(files['sensors'], **kwargs)
-
+        
     if 'behav_mvmt' not in data.columns or 'ldr' not in data.columns:
         print("Incomplete dataframe: {}".format(data.columns))
         return None, None, None, None
+
+    # Get sensors data and make sure everything is in place
+    data, n_fibers = get_data_from_sensors_csv(files['sensors'], **kwargs)
     
     return files, outpath, data, n_fibers

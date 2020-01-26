@@ -11,7 +11,7 @@ from analysis.videomaker import make_video
 from fcutils.file_io.utils import get_subdirs
 from analysis.main_plots import plot_session_traces, plot_session_psth
 
-folder = "/Volumes/swc/branco/rig_photometry/tests"
+folder = "/nfs/winstor/branco/rig_photometry/tests"
 
 make_summary_plots = True
 make_composite_video = True
