@@ -53,10 +53,6 @@ def get_data_from_sensors_csv(sensors_file, invert=False, smooth_motion=True):
 
     data = pd.read_csv(sensors_file)
 
-    # Smooth motion signal
-    if smooth_motion:
-        data['behav_mvmt'] = median_filter_1d(data['behav_mvmt'].values, pad=10, kernel=5)
-
     n_fibers = len([c for c in data.columns if 'ch_' in c and 'signal' in c])
 
     # For each fiber get the regressed signal and df/f
@@ -113,12 +109,16 @@ def setup(folder, filename, overwrite, **kwargs):
         print("\n\n Could not find enough video files at {}".format(folder))
         print("Files: {}".format(files))
         return None, None, None, None
-        
-    if 'behav_mvmt' not in data.columns or 'ldr' not in data.columns:
-        print("Incomplete dataframe: {}".format(data.columns))
-        return None, None, None, None
 
     # Get sensors data and make sure everything is in place
     data, n_fibers = get_data_from_sensors_csv(files['sensors'], **kwargs)
     
+
+    if 'behav_mvmt' not in data.columns or 'ldr' not in data.columns:
+        print("Incomplete dataframe: {}".format(data.columns))
+        return None, None, None, None
+
+    # Smooth motion signal
+    if smooth_motion:
+        data['behav_mvmt'] = median_filter_1d(data['behav_mvmt'].values, pad=10, kernel=5)
     return files, outpath, data, n_fibers
