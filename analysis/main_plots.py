@@ -32,7 +32,7 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
     if data is None: return
     stim_onset, stim_offset = get_stimuli_from_ldr(data['ldr'])
 
-    f, axarr = create_figure(subplots=True, ncols=1, nrows=2+3*n_fibers, figsize=(20, 12), sharex=True)
+    f, axarr = create_figure(subplots=True, ncols=1, nrows=2+5*n_fibers, figsize=(20, 12), sharex=True)
 
     x = np.arange(len(data.ldr.values)-2)
 
@@ -44,17 +44,23 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
     for i in range(n_fibers):
         blue = data['ch_{}_signal'.format(i)].values[2:]
         violet = data['ch_{}_motion'.format(i)].values[2:]
+        blue_no_bleach = data['ch_{}_blue_nobleach'.format(i)].values[2:]
+        violet_no_bleach = data['ch_{}_violet_nobleach'.format(i)].values[2:]
         corrected = data['ch_{}_corrected'.format(i)].values[2:]
+
         plot_trace(axarr[i+2], x, blue, 
                 '$470nm$', None, 'a.u.', color=blueled, lw=3, z=np.min(blue))
-        plot_trace(axarr[i+3], x, violet, 
+        plot_trace(axarr[i+3], x, blue_no_bleach, 
+                '$470nm - after double exp$', None, 'a.u.', color=blueled, lw=3, z=np.min(blue))
+        plot_trace(axarr[i+4], x, violet, 
                 '$405nm$', None, 'a.u.', color=violetled, lw=3, z=np.min(violet))
-
+        plot_trace(axarr[i+5], x, violet_no_bleach, 
+                '$405nm - after double exp$', None, 'a.u.', color=violetled, lw=3, z=np.min(violet))
         if i == n_fibers-1:
             xlabel = 'Frames'
         else:
             xlabel = None
-        plot_trace(axarr[i+4], x, corrected, 'Corrected blue', 
+        plot_trace(axarr[i+6], x, corrected, '470nm after DFF and lin.reg.', 
                                 xlabel, 'a.u.', color=blue_dff_color, lw=3, z=0)
 
     # Plot stim onsets
@@ -155,4 +161,4 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffle
     close_figure(f)
 
 if __name__ == "__main__":
-    plot_session_psth(folder, overwrite=True)
+    plot_session_traces(folder, overwrite=True)

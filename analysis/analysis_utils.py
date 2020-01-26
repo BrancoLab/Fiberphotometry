@@ -5,6 +5,8 @@ import numpy as np
 import os
 import pandas as pd
 from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit
+
 
 from fcutils.file_io.utils import listdir, check_file_exists, check_create_folder
 from fcutils.plotting.colors import *
@@ -42,6 +44,8 @@ def get_files_in_folder(folder):
     return dict(behaviour=behavcam, calcium=cacam, sensors=sensors, analysis=analysis)
 
 
+
+
 def get_data_from_sensors_csv(sensors_file, invert=False):
     """
         Given a sensors_data.csv it loads the data and takes care of the linear regression
@@ -50,8 +54,20 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
                     use invert=True to correct this.
     """
 
-    data = pd.read_csv(sensors_file)
+    def double_exponential(x, a, b, c, d):
+        return a * np.exp(b * x) + c * np.exp(d*x)
 
+    def remove_exponential(x, y):
+        """ Fits a double exponential to the data and returns the results """
+        popt, pcov = curve_fit(double_exponential, x, y, maxfev=2000, 
+                            p0=(1.0,  -1e-6, 1.0,  -1e-6),
+                            bounds = [[1, -1e-1, 1, -1e-1], [100, 0, 100, 0]])
+
+        y_pred = double_exponential(x, *popt)
+        return y_pred
+
+    # Load data
+    data = pd.read_csv(sensors_file)
     n_fibers = len([c for c in data.columns if 'ch_' in c and 'signal' in c])
 
     # For each fiber get the regressed signal and df/f
@@ -63,9 +79,14 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
             violet = data['ch_{}_signal'.format(n)].values[2:]
             blue = data['ch_{}_motion'.format(n)].values[2:]
 
+        # Correct bleaching for each signal
+        x = np.arange(len(blue))
+        blue_no_bleach = remove_exponential(x, blue)
+        violet_no_bleach = remove_exponential(x, violet)
+
         # compute dff for each led
-        blue_dff = (blue - np.nanmedian(blue))/np.nanmedian(blue)
-        violet_dff = (violet - np.nanmedian(violet))/np.nanmedian(violet)
+        blue_dff = (blue_no_bleach - np.nanmedian(blue_no_bleach))/np.nanmedian(blue_no_bleach)
+        violet_dff = (violet_no_bleach - np.nanmedian(violet_no_bleach))/np.nanmedian(violet_no_bleach)
 
         # regress signal
         regressor = LinearRegression()  
@@ -74,6 +95,11 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
         corrected_blue_dff = blue_dff - expected_blue_dff
         corrected_blue_dff = np.concatenate([[0, 0], corrected_blue_dff])
 
+        # Add stuff to the dataframe
+        data['ch_{}_blue_nobleach'.format(n)] = np.concatenate([[0, 0], blue_no_bleach])
+        data['ch_{}_violet_nobleach'.format(n)] = np.concatenate([[0, 0], violet_no_bleach])
+        data['ch_{}_blue_dff'.format(n)] = np.concatenate([[0, 0], blue_dff])
+        data['ch_{}_violet_dff'.format(n)] = np.concatenate([[0, 0], violet_dff])
         data['ch_{}_corrected'.format(n)] = corrected_blue_dff
     return data, n_fibers
 
