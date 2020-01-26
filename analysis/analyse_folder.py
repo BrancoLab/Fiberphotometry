@@ -15,7 +15,7 @@ from analysis.main_plots import plot_session_traces, plot_session_psth
 folder = '/Volumes/swc/branco/rig_photometry/tests'
 
 make_summary_plots = True
-make_composite_video = True
+make_composite_video = False
 overwrite = True
 
 for si, subdir in enumerate(get_subdirs(folder)):
@@ -43,7 +43,8 @@ for si, subdir in enumerate(get_subdirs(folder)):
         if make_summary_plots:
             print("         making summary plots")
             plot_session_traces(subsub, overwrite=overwrite)
-            plot_session_psth(subsub, overwrite=overwrite, plot_shuffled=False)
+            plot_session_psth(subsub, overwrite=overwrite, plot_shuffled=True, 
+                                post_frames=120, baseline_frames=100)
 
 
 

@@ -80,16 +80,31 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
 
 def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffled=True,
                 show_individual_trials=False, post_frames=30, **kwargs):
+    # Set up data
     files, outpath, data, n_fibers = setup(folder, "_session_psth.png", overwrite, **kwargs)
     if data is None: return
     stim_onset, stim_offset = get_stimuli_from_ldr(data['ldr'])
+    
+    # Some checks
     if len(stim_onset) < 5: return
+    if len(stim_onset) != len(stim_offset): 
+        if len(stim_onset) > len(stim_offset):
+            stim_onset = stim_onset[:len(stim_offset)]
+        else:
+            raise ValueError
+
+    stim_duration = np.mean(stim_offset-stim_onset)
+
 
     # Get aligned trials data
     trials = [[] for i in range(n_fibers)]
+    random_trials = [[] for i in range(n_fibers)]
     for onset in stim_onset:
         for i in range(n_fibers):
             trials[i].append(data['ch_{}_corrected'.format(i)].values[onset-baseline_frames:onset+post_frames])
+
+            random_onset = np.random.randint(0, len(data))
+            random_trials[i].append(data['ch_{}_corrected'.format(i)].values[random_onset-baseline_frames:random_onset+post_frames])
 
     if n_fibers>1:
         f, axarr = create_figure(subplots=True, nrows=n_fibers, sharex=True, figsize=(20, 12))
@@ -97,7 +112,7 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffle
         f, ax = create_figure(subplots=False, figsize=(20, 12))
         axarr=[ax]
 
-    for i,(ax, trs) in enumerate(zip(axarr, trials)):
+    for i,(ax, trs, random_trs) in enumerate(zip(axarr, trials, random_trials)):
         # Plot single trials
         nframes = baseline_frames+post_frames
         trs = np.array([t for t in trs if len(t) == nframes])
@@ -105,21 +120,22 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffle
             ax.plot(trs.T, color=desaturate_color(blue_dff_color), lw=2, alpha=.5)
 
         # Plot mean + error for real data
-        mn, err = np.mean(trs, axis=0), stats.sem(trs, axis=0)
+        mn, err = np.nanmean(trs, axis=0), stats.sem(trs, axis=0)
         x = np.arange(len(mn))
         ax.plot(x, mn, lw=4, color=blue_dff_color, alpha=1, zorder=99, label='signal')
         ax.fill_between(x, mn-err, mn+err, color=blue_dff_color, alpha=.3, zorder=90)
 
         # plot mean + error for shuffled data
         if plot_shuffled:
-            shuffled = trs.copy()
-            random.shuffle(shuffled)
-            mn, err = np.mean(shuffled, axis=0), stats.sem(shuffled, axis=0)
-            ax.plot(x, mn, lw=4, color=[.6, .6, .6], alpha=1, zorder=95, label='shuffled')
-            ax.fill_between(x, mn-err, mn+err, color=[.6, .6, .6], alpha=.3, zorder=80)
+            rndtrs = np.array([t for t in random_trs if len(t) == nframes])
+            mn, err = np.nanmean(rndtrs, axis=0), stats.sem(rndtrs, axis=0)
+            ax.plot(x, mn, lw=4, color=[.6, .6, .6], alpha=.8, zorder=95, label='shuffled')
+            ax.fill_between(x, mn-err, mn+err, color=[.6, .6, .6], alpha=.1, zorder=80)
 
         ax.legend()
         ax.axvline(baseline_frames, lw=3, color=[.5, .5, .5], ls="--")
+        ax.axvline(baseline_frames+stim_duration, lw=3, color=[.3, .3, .3], ls="--")
+
         # clean axis
         ax.set(xticks=[0, baseline_frames, baseline_frames+post_frames], xticklabels=[-baseline_frames, 0, post_frames],
                 title='Channel {} psth'.format(i), xlabel='frames', ylabel='corrected 470nm')
