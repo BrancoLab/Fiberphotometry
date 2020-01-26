@@ -12,7 +12,7 @@ if sys.platform == 'darwin':
     import matplotlib
     matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-
+import seaborn as sns
 
 from analysis_utils import setup
 from analysis_utils import blueled, blue_dff_color, violetled, motion_color, ldr_color
@@ -101,16 +101,15 @@ def make_frame(data, n_fibers, videos, fps, t):
 
     # ---------------------------------------------------------------------------- #
     # Create subplots
-    f, axes = plt.subplots(4, 2, figsize=(20, 20),\
+    f, axes = plt.subplots(3, 2, figsize=(20, 20),\
                 gridspec_kw={'width_ratios': [2, 3],
-                            'height_ratios':[3, 1, 1, 1]})
+                            'height_ratios':[3, 1, 1]})
     fibers_frame_ax = axes[0][0]
     behav_frame_ax = axes[0][1]
     motion_ax = axes[1][1]
     ldr_ax = axes[2][1]
     blue_ax = axes[1][0]
     violet_ax = axes[2][0]
-    dff_ax = axes[3][0]
 
     # get frame number
     framen = int(t*fps)
@@ -122,7 +121,6 @@ def make_frame(data, n_fibers, videos, fps, t):
     # Add signals to image
     add_signal_plot(motion_ax, data['behav_mvmt'], framen, 20, color=motion_color, lw=3)
     add_signal_plot(ldr_ax, data['ldr'], framen, 20, color=ldr_color, lw=3)
-    add_signal_plot(dff_ax, data['ch_0_dff'], framen, 20, color=blue_dff_color, lw=3)
     add_signal_plot(blue_ax, data['ch_0_signal'], framen, 20, color=blueled, lw=3)
     add_signal_plot(violet_ax, data['ch_0_motion'], framen, 20, color=violetled, lw=3)
 
@@ -131,7 +129,6 @@ def make_frame(data, n_fibers, videos, fps, t):
     behav_frame_ax.set(xticks=[], yticks=[])
     motion_ax.set(title='Behav. frame. motion', ylabel='movement (a.u.)', xlabel='frame')
     ldr_ax.set(title='LDR signal', ylabel='signal (V)', xlabel='frame')
-    dff_ax.set(title=r'$\Delta f / f$', ylabel=r'$\frac{\Delta f}{f}$', xlabel='frame')
     blue_ax.set(title='Blue led', ylabel='intensity', xlabel='frame')
     violet_ax.set(title='Violet led', ylabel='intensity', xlabel='frame')
 

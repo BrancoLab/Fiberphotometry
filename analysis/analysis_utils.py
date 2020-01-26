@@ -6,7 +6,7 @@ import os
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-from fcutils.file_io.utils import listdir, check_file_exists
+from fcutils.file_io.utils import listdir, check_file_exists, check_create_folder
 from fcutils.plotting.colors import *
 from fcutils.maths.filtering import median_filter_1d
 
@@ -36,8 +36,7 @@ def get_files_in_folder(folder):
         
     sensors = [f for f in files if 'sensors_data.csv' in f][0]
     analysis = os.path.join(folder, 'analysis')
-    if not os.path.isdir(analysis):
-        os.makedirs(analysis)
+    check_create_folder(analysis)
 
 
     return dict(behaviour=behavcam, calcium=cacam, sensors=sensors, analysis=analysis)
@@ -64,19 +63,18 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
             violet = data['ch_{}_signal'.format(n)].values[2:]
             blue = data['ch_{}_motion'.format(n)].values[2:]
 
+        # compute dff for each led
+        blue_dff = (blue - np.mean(blue))/np.mean(blue)
+        violet_dff = (violet - np.mean(violet))/np.mean(violet)
+
         # regress signal
         regressor = LinearRegression()  
-        regressor.fit(violet.reshape(-1, 1), blue.reshape(-1, 1))
-        expected_blue = violet*regressor.coef_[0][0] + regressor.intercept_[0]
-        corrected_blue = blue - expected_blue
-        corrected_blue = np.concatenate([[0, 0], corrected_blue])
+        regressor.fit(violet_dff.reshape(-1, 1), blue_dff.reshape(-1, 1))
+        expected_blue_dff = violet_dff*regressor.coef_[0][0] + regressor.intercept_[0]
+        corrected_blue_dff = blue_dff - expected_blue_dff
+        corrected_blue_dff = np.concatenate([[0, 0], corrected_blue_dff])
 
-        data['ch_{}_corrected'.format(n)] = corrected_blue
-
-        # get df/f
-        chmean = np.mean(corrected_blue)
-        data['ch_{}_dff'.format(n)] = (corrected_blue - chmean)/chmean
-
+        data['ch_{}_corrected'.format(n)] = corrected_blue_dff
     return data, n_fibers
 
 

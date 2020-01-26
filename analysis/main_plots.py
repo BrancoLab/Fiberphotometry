@@ -83,6 +83,7 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffle
     files, outpath, data, n_fibers = setup(folder, "_session_psth.png", overwrite, **kwargs)
     if data is None: return
     stim_onset, stim_offset = get_stimuli_from_ldr(data['ldr'])
+    if len(stim_onset) < 5: return
 
     # Get aligned trials data
     trials = [[] for i in range(n_fibers)]
@@ -98,7 +99,8 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffle
 
     for i,(ax, trs) in enumerate(zip(axarr, trials)):
         # Plot single trials
-        trs = np.array(trs)
+        nframes = baseline_frames+post_frames
+        trs = np.array([t for t in trs if len(t) == nframes])
         if show_individual_trials:
             ax.plot(trs.T, color=desaturate_color(blue_dff_color), lw=2, alpha=.5)
 

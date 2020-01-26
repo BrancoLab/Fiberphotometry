@@ -11,11 +11,12 @@ from analysis.videomaker import make_video
 from fcutils.file_io.utils import get_subdirs
 from analysis.main_plots import plot_session_traces, plot_session_psth
 
-folder = "/nfs/winstor/branco/rig_photometry/tests"
+# folder = "/nfs/winstor/branco/rig_photometry/tests"
+folder = '/Volumes/swc/branco/rig_photometry/tests'
 
 make_summary_plots = True
 make_composite_video = True
-overwrite = False
+overwrite = True
 
 for si, subdir in enumerate(get_subdirs(folder)):
     # get the date at which the experiment was executed to adjust some params
@@ -42,7 +43,7 @@ for si, subdir in enumerate(get_subdirs(folder)):
         if make_summary_plots:
             print("         making summary plots")
             plot_session_traces(subsub, overwrite=overwrite)
-            plot_session_psth(subsub, overwrite=overwrite)
+            plot_session_psth(subsub, overwrite=overwrite, plot_shuffled=False)
 
 
 
