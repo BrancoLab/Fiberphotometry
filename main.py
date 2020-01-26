@@ -10,13 +10,14 @@ from PyQt5.QtGui import *
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 
-from utils.file_io import check_file_exists, check_create_folder, check_folder_empty, create_csv_file, append_csv_file
 from utils.settings_parser import SettingsParser
 from camera.camera import Camera
 from datamanager.img_process import ImgProcess
 from utils.NI.boardcontrol import NImanager
 from stimuli import grating
 
+from fcutils.file_io.file_io import create_csv_file, append_csv_file
+from fcutils.file_io.utils import check_file_exists, check_create_folder, check_folder
 
 
 # ---------------------------------------------------------------------------- #

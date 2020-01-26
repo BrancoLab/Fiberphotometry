@@ -7,3 +7,5 @@ matplotlib
 seaborn
 sklearn
 scipy
+psychopy
+pypylon

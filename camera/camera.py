@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import time
 
-from utils.file_io import *
+from fcutils.file_io.file_io import *
 
 
 class Camera():

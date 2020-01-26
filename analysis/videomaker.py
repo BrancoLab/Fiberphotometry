@@ -16,10 +16,11 @@ import seaborn as sns # used to style plots
 sns.set()
 sns.set_context("talk", font_scale=1.3)
 
-from utils.maths.filtering import *
-from utils.maths.stimuli_detection import *
-from utils.colors import *
 from analysis_utils import get_files_in_folder, get_data_from_sensors_csv
+
+from fcutils.maths.filtering import *
+from fcutils.maths.stimuli_detection import *
+from fcutils.plotting.colors import *
 
 # ? Define a bunch of colors
 blueled = lightskyblue
@@ -32,9 +33,6 @@ ldr_color = salmon
 # ? define folder to process and fps
 folder = '/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/fiberphot_data/200124_fiberp/240120_id_994382_freelymoving_twofibers_3'
 fps = 10 # fps at which we acquired the experiment's videos
-
-
-
 
 
 # ---------------------------------------------------------------------------- #
