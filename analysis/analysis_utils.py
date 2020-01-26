@@ -64,8 +64,8 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
             blue = data['ch_{}_motion'.format(n)].values[2:]
 
         # compute dff for each led
-        blue_dff = (blue - np.mean(blue))/np.mean(blue)
-        violet_dff = (violet - np.mean(violet))/np.mean(violet)
+        blue_dff = (blue - np.nanmedian(blue))/np.nanmedian(blue)
+        violet_dff = (violet - np.nanmedian(violet))/np.nanmedian(violet)
 
         # regress signal
         regressor = LinearRegression()  
@@ -104,8 +104,6 @@ def setup(folder, filename, overwrite, smooth_motion=True, **kwargs):
         return None, None, None, None
 
     if files['behaviour'] is None or files['calcium'] is None:
-        print("\n\n Could not find enough video files at {}".format(folder))
-        print("Files: {}".format(files))
         return None, None, None, None
 
     # Get sensors data and make sure everything is in place
@@ -113,7 +111,6 @@ def setup(folder, filename, overwrite, smooth_motion=True, **kwargs):
 
 
     if 'behav_mvmt' not in data.columns or 'ldr' not in data.columns:
-        print("Incomplete dataframe: {}".format(data.columns))
         return None, None, None, None
 
     # Smooth motion signal
