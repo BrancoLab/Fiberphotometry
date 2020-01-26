@@ -8,26 +8,20 @@ from functools import partial
 from moviepy.editor import VideoClip
 import cv2
 
-import matplotlib
-matplotlib.use('TkAgg')
+if sys.platform == 'darwin':
+    import matplotlib
+    matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-import seaborn as sns # used to style plots
-sns.set()
-sns.set_context("talk", font_scale=1.3)
 
-from analysis_utils import get_files_in_folder, get_data_from_sensors_csv
+from analysis_utils import setup
+from analysis_utils import blueled, blue_dff_color, violetled, motion_color, ldr_color
 
 from fcutils.maths.filtering import *
 from fcutils.maths.stimuli_detection import *
-from fcutils.plotting.colors import *
+from fcutils.plotting.plotting_utils import set_figure_subplots_aspect
 
-# ? Define a bunch of colors
-blueled = lightskyblue
-blue_dff_color = plum
-violetled = violet
-motion_color = thistle
-ldr_color = salmon
+
 
 
 # ? define folder to process and fps
@@ -144,7 +138,7 @@ def make_frame(data, n_fibers, videos, fps, t):
     # improve aestethics
     # Use these values to change subplots aspect
     sns.despine(offset=10, trim=True)
-    plt.subplots_adjust(
+    set_figure_subplots_aspect(
         left  = 0.125,  # the left side of the subplots of the figure
         right = 0.9,    # the right side of the subplots of the figure
         bottom = 0.06,   # the bottom of the subplots of the figure
@@ -152,7 +146,7 @@ def make_frame(data, n_fibers, videos, fps, t):
         wspace = 0.2,   # the amount of width reserved for blank space between subplots
         hspace = 0.3,   # the amount of height reserved for white space between subplots
     )
-    
+
     # export image
     f.tight_layout()
     f.canvas.draw()
@@ -173,31 +167,14 @@ def make_video(folder, fps, overwrite=False, **kwargs):
         :param fps: int, fps of experiment
         :param overwrite: bool if False it avoids overwriting a previously generated video
     """
-    # Get files
-    files = get_files_in_folder(folder)
-
-    # Get the name of the destination video and check if it exists
-    name = os.path.split(folder)[-1]
-    outpath = "{}_comp.mp4".format(os.path.join(files['analysis'], name))
-
-    if os.path.isfile(outpath) and not overwrite:
+    # setup
+    files, outpath, data, n_fibers = setup(folder, "_comp.mp4", overwrite, **kwargs)
+    if files is None: 
         return
 
     # Open videos as caps
-    if files['behaviour'] is None or files['calcium'] is None:
-        print("\n\n Could not find enough video files to create composite at {}".format(outpath))
-        print("Files: {}".format(files))
-        return
-
     caps = {k: cv2.VideoCapture(f) for k,f in files.items() 
             if '.mp4' in f or '.avi' in f and f is not None}
-
-    # Get sensors data and make sure everything is in place
-    data, n_fibers = get_data_from_sensors_csv(files['sensors'], **kwargs)
-
-    if 'behav_mvmt' not in data.columns or 'ldr' not in data.columns:
-        print("Incomplete dataframe: {}".format(data.columns))
-        return
 
     # Create video
     duration = len(data)/fps

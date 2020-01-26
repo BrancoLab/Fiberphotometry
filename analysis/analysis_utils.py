@@ -6,7 +6,17 @@ import os
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-from fcutils.file_io.utils import listdir
+from fcutils.file_io.utils import listdir, check_file_exists
+from fcutils.plotting.colors import *
+from fcutils.maths.filtering import median_filter_1d
+
+# ? Define a bunch of colors
+blueled = lightskyblue
+blue_dff_color = plum
+violetled = violet
+motion_color = thistle
+ldr_color = salmon
+
 
 def get_files_in_folder(folder):
     """
@@ -33,7 +43,7 @@ def get_files_in_folder(folder):
     return dict(behaviour=behavcam, calcium=cacam, sensors=sensors, analysis=analysis)
 
 
-def get_data_from_sensors_csv(sensors_file, invert=False):
+def get_data_from_sensors_csv(sensors_file, invert=False, smooth_motion=True):
     """
         Given a sensors_data.csv it loads the data and takes care of the linear regression
 
@@ -42,6 +52,10 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
     """
 
     data = pd.read_csv(sensors_file)
+
+    # Smooth motion signal
+    if smooth_motion:
+        data['behav_mvmt'] = median_filter_1d(data['behav_mvmt'].values, pad=10, kernel=5)
 
     n_fibers = len([c for c in data.columns if 'ch_' in c and 'signal' in c])
 
@@ -68,3 +82,43 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
         data['ch_{}_dff'.format(n)] = (corrected_blue - chmean)/chmean
 
     return data, n_fibers
+
+
+def get_stimuli_from_ldr(ldr, th=4.45):
+    " detects onset and offset of stimuli from the ldr signal"
+    ldr_copy = np.zeros_like(ldr)
+    ldr_copy[ldr > th] = 1
+
+    ldr_onset = np.where(np.diff(ldr_copy) > .5)[0]
+    ldr_offset = np.where(np.diff(ldr_copy) < -.5)[0]
+
+    return ldr_onset, ldr_offset
+
+
+def setup(folder, filename, overwrite, **kwargs):
+    """
+        Gets data, checks if file exists..
+    """
+    # Get files
+    files = get_files_in_folder(folder)
+
+    # Get the name of the destination plot and check if it exists
+    name = os.path.split(folder)[-1]
+    outpath = "{}_{}".format(os.path.join(files['analysis'], name), filename)
+
+    if check_file_exists(outpath) and not overwrite:
+        return None, None, None, None
+
+    if files['behaviour'] is None or files['calcium'] is None:
+        print("\n\n Could not find enough video files at {}".format(folder))
+        print("Files: {}".format(files))
+        return None, None, None, None
+     
+    # Get sensors data and make sure everything is in place
+    data, n_fibers = get_data_from_sensors_csv(files['sensors'], **kwargs)
+
+    if 'behav_mvmt' not in data.columns or 'ldr' not in data.columns:
+        print("Incomplete dataframe: {}".format(data.columns))
+        return None, None, None, None
+    
+    return files, outpath, data, n_fibers
