@@ -43,7 +43,7 @@ def get_files_in_folder(folder):
     return dict(behaviour=behavcam, calcium=cacam, sensors=sensors, analysis=analysis)
 
 
-def get_data_from_sensors_csv(sensors_file, invert=False, smooth_motion=True):
+def get_data_from_sensors_csv(sensors_file, invert=False):
     """
         Given a sensors_data.csv it loads the data and takes care of the linear regression
 
@@ -91,7 +91,7 @@ def get_stimuli_from_ldr(ldr, th=4.45):
     return ldr_onset, ldr_offset
 
 
-def setup(folder, filename, overwrite, **kwargs):
+def setup(folder, filename, overwrite, smooth_motion=True, **kwargs):
     """
         Gets data, checks if file exists..
     """
@@ -112,7 +112,7 @@ def setup(folder, filename, overwrite, **kwargs):
 
     # Get sensors data and make sure everything is in place
     data, n_fibers = get_data_from_sensors_csv(files['sensors'], **kwargs)
-    
+
 
     if 'behav_mvmt' not in data.columns or 'ldr' not in data.columns:
         print("Incomplete dataframe: {}".format(data.columns))
