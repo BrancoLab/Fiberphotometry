@@ -77,7 +77,7 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
     close_figure(f)
 
 
-def plot_session_psth(folder, overwrite=True, baseline_frames = 30, 
+def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffled=True,
                 show_individual_trials=False, post_frames=30, **kwargs):
     files, outpath, data, n_fibers = setup(folder, "_session_psth.png", overwrite, **kwargs)
     stim_onset, stim_offset = get_stimuli_from_ldr(data['ldr'])
@@ -107,11 +107,12 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30,
         ax.fill_between(x, mn-err, mn+err, color=blue_dff_color, alpha=.3, zorder=90)
 
         # plot mean + error for shuffled data
-        # shuffled = trs.copy()
-        # random.shuffle(shuffled)
-        # mn, err = np.mean(shuffled, axis=0), stats.sem(shuffled, axis=0)
-        # ax.plot(x, mn, lw=4, color=[.6, .6, .6], alpha=1, zorder=95, label='shuffled')
-        # ax.fill_between(x, mn-err, mn+err, color=[.6, .6, .6], alpha=.3, zorder=80)
+        if plot_shuffled:
+            shuffled = trs.copy()
+            random.shuffle(shuffled)
+            mn, err = np.mean(shuffled, axis=0), stats.sem(shuffled, axis=0)
+            ax.plot(x, mn, lw=4, color=[.6, .6, .6], alpha=1, zorder=95, label='shuffled')
+            ax.fill_between(x, mn-err, mn+err, color=[.6, .6, .6], alpha=.3, zorder=80)
 
         ax.legend()
         ax.axvline(baseline_frames, lw=3, color=[.5, .5, .5], ls="--")
@@ -130,7 +131,6 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30,
         hspace = 0.5,   # the amount of height reserved for white space between subplots
     )
     
-
     save_figure(f, outpath.split(".png")[0])
     close_figure(f)
 
