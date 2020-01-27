@@ -94,7 +94,7 @@ def get_data_from_sensors_csv(sensors_file, fit_range = [], invert=False):
         violet_no_bleach = remove_exponential(x, violet)
 
         # compute dff for each led
-        blue_bsl = np.nanpercentile(blue_no_bleach,5)
+        blue_bsl = np.nanpercentile(blue_no_bleach,50)
         violet_bsl = np.nanpercentile(violet_no_bleach,5)
         blue_dff = (blue_no_bleach - blue_bsl)/blue_bsl
         violet_dff = (violet_no_bleach - violet_bsl)/violet_bsl
@@ -104,6 +104,12 @@ def get_data_from_sensors_csv(sensors_file, fit_range = [], invert=False):
         regressor.fit(violet_dff.reshape(-1, 1), blue_dff.reshape(-1, 1))
         expected_blue_dff = violet_dff*regressor.coef_[0][0] + regressor.intercept_[0]
         corrected_blue_dff = blue_dff - expected_blue_dff
+        
+        
+        regressor = LinearRegression()  
+        regressor.fit(violet_no_bleach.reshape(-1, 1), blue_no_bleach.reshape(-1, 1))
+        expected_blue = violet_no_bleach*regressor.coef_[0][0] + regressor.intercept_[0]        
+        corrected_blue_raw = (blue_no_bleach - expected_blue)/expected_blue
         
         # if fitting was not done on whole trace, pad back to same length with nans
         if fit_range != []:
@@ -117,15 +123,18 @@ def get_data_from_sensors_csv(sensors_file, fit_range = [], invert=False):
             violet_no_bleach = np.pad(violet_no_bleach, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
             blue_dff = np.pad(blue_dff, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
             violet_dff = np.pad(violet_dff, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
+            expected_blue_dff = np.pad(expected_blue_dff, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
             corrected_blue_dff = np.pad(corrected_blue_dff, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
-     
+            corrected_blue_raw = np.pad(corrected_blue_raw, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
 
         # Add stuff to the dataframe
         data['ch_{}_blue_nobleach'.format(n)] = np.concatenate([[0, 0], blue_no_bleach])
         data['ch_{}_violet_nobleach'.format(n)] = np.concatenate([[0, 0], violet_no_bleach])
         data['ch_{}_blue_dff'.format(n)] = np.concatenate([[0, 0], blue_dff])
         data['ch_{}_violet_dff'.format(n)] = np.concatenate([[0, 0], violet_dff])
+        data['ch_{}_expected_blue_dff'.format(n)] = np.concatenate([[0, 0], expected_blue_dff])
         data['ch_{}_corrected'.format(n)] = np.concatenate([[0, 0], corrected_blue_dff])
+        data['ch_{}_corrected_regOnly'.format(n)] = np.concatenate([[0, 0], corrected_blue_raw])
     return data, n_fibers
 
 
