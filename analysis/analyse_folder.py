@@ -51,9 +51,9 @@ def process_subdir(subsubdir):
 if __name__ == "__main__":
     mp.set_start_method("spawn") # avoid errors on MacOS
 
-    # folder = "/nfs/winstor/branco/rig_photometry/tests"
+    folder = "/nfs/winstor/branco/rig_photometry/tests/urgent"
     # folder = '/Volumes/swc/branco/rig_photometry/tests'
-    folder='Z:\\swc\\branco\\rig_photometry\\tests'
+    # folder='Z:\\swc\\branco\\rig_photometry\\tests'
 
     subdirs = get_subdirs(folder)
     subsub = flatten_list([get_subdirs(sub) for sub in subdirs])

@@ -119,10 +119,11 @@ def make_frame(data, n_fibers, videos, fps, t):
     add_videoframe(behav_frame_ax, videos['behaviour'], framen, -2)
 
     # Add signals to image
-    add_signal_plot(motion_ax, data['behav_mvmt'], framen, 20, color=motion_color, lw=3)
-    add_signal_plot(ldr_ax, data['ldr'], framen, 20, color=ldr_color, lw=3)
-    add_signal_plot(blue_ax, data['ch_0_signal'], framen, 20, color=blueled, lw=3)
-    add_signal_plot(violet_ax, data['ch_0_motion'], framen, 20, color=violetled, lw=3)
+    n_frames_in_plot = 60  
+    add_signal_plot(motion_ax, data['behav_mvmt'], framen, n_frames_in_plot, color=motion_color, lw=3)
+    add_signal_plot(ldr_ax, data['ldr'], framen, n_frames_in_plot, color=ldr_color, lw=3)
+    add_signal_plot(blue_ax, data['ch_0_signal'], framen, n_frames_in_plot, color=blueled, lw=3)
+    add_signal_plot(violet_ax, data['ch_0_motion'], framen, n_frames_in_plot, color=violetled, lw=3)
 
     # Decorate axes
     fibers_frame_ax.set(xticks=[], yticks=[])
@@ -168,6 +169,8 @@ def make_video(folder, fps, overwrite=False, **kwargs):
     files, outpath, data, n_fibers = setup(folder, "_comp.mp4", overwrite, **kwargs)
     if files is None: 
         return
+    if len(data) < 2000: 
+        return # Ignore recordings that are too short
 
     # Open videos as caps
     caps = {k: cv2.VideoCapture(f) for k,f in files.items() 
