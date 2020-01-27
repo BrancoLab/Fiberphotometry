@@ -9,6 +9,7 @@ if sys.platform == 'darwin':
 import seaborn as sns
 from scipy import stats
 import random
+import numpy as np 
 
 from analysis_utils import setup, get_stimuli_from_ldr
 from analysis_utils import blueled, blue_dff_color, violetled, motion_color, ldr_color
@@ -19,7 +20,7 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_shaded_withline, ortholines
 
 
-folder = '/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/fiberphot_data/200124_fiberp/240120_id_994381_freelymoving_visualstim'
+folder = 'F:\\240120_id_994832'
 
 
 def plot_session_traces(folder, overwrite=True, **kwargs):
@@ -46,22 +47,24 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
         violet = data['ch_{}_motion'.format(i)].values[2:]
         blue_no_bleach = data['ch_{}_blue_nobleach'.format(i)].values[2:]
         violet_no_bleach = data['ch_{}_violet_nobleach'.format(i)].values[2:]
+        blue_dff = data['ch_{}_blue_dff'.format(i)].values[2:]
+        violet_dff = data['ch_{}_violet_dff'.format(i)].values[2:]
         corrected = data['ch_{}_corrected'.format(i)].values[2:]
 
         plot_trace(axarr[i+2], x, blue, 
                 '$470nm$', None, 'a.u.', color=blueled, lw=3, z=np.min(blue))
-        plot_trace(axarr[i+3], x, blue_no_bleach, 
-                '$470nm - after double exp$', None, 'a.u.', color=blueled, lw=3, z=np.min(blue_no_bleach))
+        plot_trace(axarr[i+3], x, blue_dff, 
+                '$470nm - aft bleaching correction$', None, 'a.u.', color=blueled, lw=3, z=0)
         plot_trace(axarr[i+4], x, violet, 
                 '$405nm$', None, 'a.u.', color=violetled, lw=3, z=np.min(violet))
-        plot_trace(axarr[i+5], x, violet_no_bleach, 
-                '$405nm - after double exp$', None, 'a.u.', color=violetled, lw=3, z=np.min(violet_no_bleach))
+        plot_trace(axarr[i+5], x, violet_dff, 
+                '$405nm - aft bleaching correction$', None, 'a.u.', color=violetled, lw=3, z=0)
         if i == n_fibers-1:
             xlabel = 'Frames'
         else:
             xlabel = None
         plot_trace(axarr[i+6], x, corrected, '470nm after DFF and lin.reg.', 
-                                xlabel, 'a.u.', color=blue_dff_color, lw=3, z=0)
+                                xlabel, 'dF/F.', color=blue_dff_color, lw=3, z=np.nanmin(corrected))
 
     # Plot stim onsets
     for ax in axarr:

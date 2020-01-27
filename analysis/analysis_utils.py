@@ -46,7 +46,7 @@ def get_files_in_folder(folder):
 
 
 
-def get_data_from_sensors_csv(sensors_file, invert=False):
+def get_data_from_sensors_csv(sensors_file, fit_range = [], invert=False):
     """
         Given a sensors_data.csv it loads the data and takes care of the linear regression
 
@@ -79,29 +79,53 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
         else:
             violet = data['ch_{}_signal'.format(n)].values[2:]
             blue = data['ch_{}_motion'.format(n)].values[2:]
-
+        
+        if fit_range:
+            if len(fit_range) == 1:
+                blue = data['ch_{}_signal'.format(n)].values[2+fit_range[0]:]
+                violet = data['ch_{}_motion'.format(n)].values[2+fit_range[0]:] 
+            elif len(fit_range) == 2:
+                blue = data['ch_{}_signal'.format(n)].values[2+fit_range[0]:2+fit_range[1]]
+                violet = data['ch_{}_motion'.format(n)].values[2+fit_range[0]:2+fit_range[1]]                
+                
         # Correct bleaching for each signal
         x = np.arange(len(blue))
         blue_no_bleach = remove_exponential(x, blue)
         violet_no_bleach = remove_exponential(x, violet)
 
         # compute dff for each led
-        blue_dff = (blue_no_bleach - np.nanmedian(blue_no_bleach))/np.nanmedian(blue_no_bleach)
-        violet_dff = (violet_no_bleach - np.nanmedian(violet_no_bleach))/np.nanmedian(violet_no_bleach)
+        blue_bsl = np.nanpercentile(blue_no_bleach,5)
+        violet_bsl = np.nanpercentile(violet_no_bleach,5)
+        blue_dff = (blue_no_bleach - blue_bsl)/blue_bsl
+        violet_dff = (violet_no_bleach - violet_bsl)/violet_bsl
 
         # regress signal
         regressor = LinearRegression()  
         regressor.fit(violet_dff.reshape(-1, 1), blue_dff.reshape(-1, 1))
         expected_blue_dff = violet_dff*regressor.coef_[0][0] + regressor.intercept_[0]
         corrected_blue_dff = blue_dff - expected_blue_dff
-        corrected_blue_dff = np.concatenate([[0, 0], corrected_blue_dff])
+        
+        # if fitting was not done on whole trace, pad back to same length with nans
+        if fit_range != []:
+            pad_bef = fit_range[0]
+            if len(fit_range) == 1:
+                pad_aft = 0
+            else:
+                pad_aft = len(data['ch_{}_signal'.format(n)].values[2:])-fit_range[1]-fit_range[0]
+                
+            blue_no_bleach = np.pad(blue_no_bleach, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
+            violet_no_bleach = np.pad(violet_no_bleach, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
+            blue_dff = np.pad(blue_dff, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
+            violet_dff = np.pad(violet_dff, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
+            corrected_blue_dff = np.pad(corrected_blue_dff, (pad_bef,pad_aft), 'constant', constant_values = np.nan)
+     
 
         # Add stuff to the dataframe
         data['ch_{}_blue_nobleach'.format(n)] = np.concatenate([[0, 0], blue_no_bleach])
         data['ch_{}_violet_nobleach'.format(n)] = np.concatenate([[0, 0], violet_no_bleach])
         data['ch_{}_blue_dff'.format(n)] = np.concatenate([[0, 0], blue_dff])
         data['ch_{}_violet_dff'.format(n)] = np.concatenate([[0, 0], violet_dff])
-        data['ch_{}_corrected'.format(n)] = corrected_blue_dff
+        data['ch_{}_corrected'.format(n)] = np.concatenate([[0, 0], corrected_blue_dff])
     return data, n_fibers
 
 
@@ -132,7 +156,10 @@ def setup(folder, filename, overwrite, smooth_motion=True, **kwargs):
 
     if files['behaviour'] is None or files['calcium'] is None:
         return None, None, None, None
-
+    
+    if kwargs is not None and 'fit_range' in kwargs:
+        if len(kwargs['fit_range'])>2: return None, None, None, None
+    
     # Get sensors data and make sure everything is in place
     data, n_fibers = get_data_from_sensors_csv(files['sensors'], **kwargs)
 
