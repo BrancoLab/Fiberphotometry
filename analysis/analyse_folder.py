@@ -15,7 +15,7 @@ from fcutils.file_io.utils import get_subdirs
 from fcutils.objects import flatten_list
 
 make_summary_plots = True
-make_test_plots = False
+make_test_plots = True
 make_composite_video = False
 overwrite = True
 
@@ -27,7 +27,7 @@ def process_subdir(subsubdir):
     else:
         date = int(subsubdir)
     if date < 200000: 
-        invert=True, 
+        invert=True
         fps=14
     else:
         invert=False
@@ -52,7 +52,8 @@ if __name__ == "__main__":
     mp.set_start_method("spawn") # avoid errors on MacOS
 
     # folder = "/nfs/winstor/branco/rig_photometry/tests"
-    folder = '/Volumes/swc/branco/rig_photometry/tests'
+    # folder = '/Volumes/swc/branco/rig_photometry/tests'
+    folder='Z:\\swc\\branco\\rig_photometry\\tests'
 
     subdirs = get_subdirs(folder)
     subsub = flatten_list([get_subdirs(sub) for sub in subdirs])

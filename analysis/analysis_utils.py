@@ -63,7 +63,8 @@ def get_data_from_sensors_csv(sensors_file, invert=False):
                             p0=(1.0,  -1e-6, 1.0,  -1e-6),
                             bounds = [[1, -1e-1, 1, -1e-1], [100, 0, 100, 0]])
 
-        y_pred = double_exponential(x, *popt)
+        fitted_doubleexp = double_exponential(x, *popt)
+        y_pred = y - (fitted_doubleexp - np.min(fitted_doubleexp))
         return y_pred
 
     # Load data

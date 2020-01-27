@@ -51,11 +51,11 @@ def plot_session_traces(folder, overwrite=True, **kwargs):
         plot_trace(axarr[i+2], x, blue, 
                 '$470nm$', None, 'a.u.', color=blueled, lw=3, z=np.min(blue))
         plot_trace(axarr[i+3], x, blue_no_bleach, 
-                '$470nm - after double exp$', None, 'a.u.', color=blueled, lw=3, z=np.min(blue))
+                '$470nm - after double exp$', None, 'a.u.', color=blueled, lw=3, z=np.min(blue_no_bleach))
         plot_trace(axarr[i+4], x, violet, 
                 '$405nm$', None, 'a.u.', color=violetled, lw=3, z=np.min(violet))
         plot_trace(axarr[i+5], x, violet_no_bleach, 
-                '$405nm - after double exp$', None, 'a.u.', color=violetled, lw=3, z=np.min(violet))
+                '$405nm - after double exp$', None, 'a.u.', color=violetled, lw=3, z=np.min(violet_no_bleach))
         if i == n_fibers-1:
             xlabel = 'Frames'
         else:
