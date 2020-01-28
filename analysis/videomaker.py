@@ -45,7 +45,7 @@ def make_frame(data, n_fibers, videos, fps, start_frame, t):
         :param t: float, time in the video, used to get framenumber
     """
     # ---------------------------------------------------------------------------- #
-    def add_videoframe(ax, video, framen, rescale_fact):
+    def add_videoframe(ax, cavid, behavid, framen, rescale_fact):
         """ 
             Adds a videoframe to a subplot in the frame. 
 
@@ -55,14 +55,26 @@ def make_frame(data, n_fibers, videos, fps, start_frame, t):
             :param rescale_fact: float, positive numbers reduce frame size and negative enlarge it
         """
         # Get frame from video
-        video.set(1,framen)
-        ret, frame = video.read()
-        if not ret:
-            raise ValueError("Could not read frame {} from video".format(framen))
-        
-        # scale frame
-        if rescale_fact>0: # make it smaller
-            frame = frame[::rescale_fact,::rescale_fact]
+        frames = []
+        for video in [cavid, behavid]:
+            video.set(1,framen)
+            ret, frame = video.read()
+            if not ret:
+                raise ValueError("Could not read frame {} from video".format(framen))
+            
+            # scale frame
+            if rescale_fact>0: # make it smaller
+                frame = frame[::rescale_fact,::rescale_fact]
+
+            frames.append(frame)
+
+        # Scale down the calcium frame and insert it into main frame
+        caframe = frames[0][::2,::2, 0]
+        caframe = np.pad(caframe, 10, constant_values=255) # Add a white border 
+        caframe = np.repeat(caframe[:, :, np.newaxis], 3, axis=2)
+
+        frame = frames[1]
+        frame[:caframe.shape[0], :caframe.shape[1]] = caframe
 
         # Add to ax
         ax.imshow(frame, interpolation="nearest", cmap='gray', aspect='equal')
@@ -118,8 +130,7 @@ def make_frame(data, n_fibers, videos, fps, start_frame, t):
     framen = int(t*fps)+start_frame
 
     # add video frames to image
-    add_videoframe(fibers_frame_ax, videos['calcium'], framen, 2)
-    add_videoframe(behav_frame_ax, videos['behaviour'], framen, 2)
+    add_videoframe(fibers_frame_ax, videos['calcium'],  videos['behaviour'], framen, 2)
 
     # Add signals to image
     n_frames_in_plot = 60  
@@ -191,4 +202,4 @@ def make_video(folder, fps, overwrite=False, padding=60, start_frame=0, end_fram
 
 # ---------------------------------------------------------------------------- #
 if __name__ == "__main__":
-    make_video(folder, fps, overwrite=True, start_frame=100, end_frame=200)
+    make_video(folder, fps, overwrite=True, start_frame=100, end_frame=140)
