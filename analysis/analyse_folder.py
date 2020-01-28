@@ -16,7 +16,7 @@ from fcutils.objects import flatten_list
 
 make_summary_plots = True
 make_test_plots = True
-make_composite_video = False
+make_composite_video = True
 overwrite = True
 
 def process_subdir(subsubdir):
@@ -51,9 +51,9 @@ def process_subdir(subsubdir):
 if __name__ == "__main__":
     mp.set_start_method("spawn") # avoid errors on MacOS
 
-    folder = "/nfs/winstor/branco/rig_photometry/tests/urgent"
+    # folder = "/nfs/winstor/branco/rig_photometry/tests/urgent"
     # folder = '/Volumes/swc/branco/rig_photometry/tests'
-    # folder='Z:\\swc\\branco\\rig_photometry\\tests'
+    folder='Z:\\swc\\branco\\rig_photometry\\tests\\urgent'
 
     subdirs = get_subdirs(folder)
     subsub = flatten_list([get_subdirs(sub) for sub in subdirs])

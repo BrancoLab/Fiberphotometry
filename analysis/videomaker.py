@@ -25,14 +25,15 @@ from fcutils.plotting.plotting_utils import set_figure_subplots_aspect
 
 
 # ? define folder to process and fps
-folder = '/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/fiberphot_data/200124_fiberp/240120_id_994382_freelymoving_twofibers_3'
-fps = 10 # fps at which we acquired the experiment's videos
+# folder = '/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/fiberphot_data/200124_fiberp/240120_id_994382_freelymoving_twofibers_3'
+folder=r'K:\191213_994832_right_3'
+fps = 14 # fps at which we acquired the experiment's videos
 
 
 # ---------------------------------------------------------------------------- #
 #                                 FRAME CREATOR                                #
 # ---------------------------------------------------------------------------- #
-def make_frame(data, n_fibers, videos, fps, t):
+def make_frame(data, n_fibers, videos, fps, start_frame, t):
     """ 
         This function is called by make_video below to create each frame in the video.
         The frame is crated as a matplotlib figure and then added to the video.
@@ -62,10 +63,6 @@ def make_frame(data, n_fibers, videos, fps, t):
         # scale frame
         if rescale_fact>0: # make it smaller
             frame = frame[::rescale_fact,::rescale_fact]
-        elif rescale_fact<0: # make it larger
-            w = frame.shape[0] * np.abs(rescale_fact)
-            h = frame.shape[1] * np.abs(rescale_fact)
-            frame = cv2.resize(frame, (h, w))
 
         # Add to ax
         ax.imshow(frame, interpolation="nearest", cmap='gray', aspect='equal')
@@ -81,19 +78,25 @@ def make_frame(data, n_fibers, videos, fps, t):
             :param nframes: int, number of frames before and after framen to show from the data
             :param **kwargs: to style the line plot
         """
+        # Pad data
+        pad_size = 200
+        framen += pad_size
+        y = np.pad(data, (pad_size, pad_size))
 
-        if framen < nframes:
-            toplot = data[:framen]
-            ax.axvline(framen, ls='--', lw=2, color='k', alpha=.6) 
-        elif framen + nframes > len(data):
-            toplot = data[framen:]
-            toplot = np.concatenate([toplot, np.zeros(2*nframes)])
-        else:
-            toplot = data[framen-nframes : framen+nframes]
-            ax.axvline(nframes, ls='--', lw=2, color='k', alpha=.6)
+        # Plot past frames
+        ypre = y[framen-nframes:framen]
+        xpre = np.arange(len(ypre))
+        ax.plot(xpre, ypre, alpha=.6, **kwargs)
 
-        ax.plot(np.arange(len(toplot)), toplot, **kwargs)
+        # Plot future frames
+        ypost = y[framen:framen+nframes]
+        xpost = np.arange(len(ypost))+len(xpre)
+        ax.plot(xpost, ypost, **kwargs)
 
+        # Plot
+        ax.axvline(nframes, ls='--', lw=2, color='k', alpha=.6)
+
+        # Set x axis
         x = np.linspace(0, nframes*2, 5).astype(np.int16)
         xl = [framen-nframes, int(framen-nframes*.5), framen, 
                 int(framen+nframes*.5), framen+nframes]
@@ -112,11 +115,11 @@ def make_frame(data, n_fibers, videos, fps, t):
     violet_ax = axes[2][0]
 
     # get frame number
-    framen = int(t*fps)
+    framen = int(t*fps)+start_frame
 
     # add video frames to image
     add_videoframe(fibers_frame_ax, videos['calcium'], framen, 2)
-    add_videoframe(behav_frame_ax, videos['behaviour'], framen, -2)
+    add_videoframe(behav_frame_ax, videos['behaviour'], framen, 2)
 
     # Add signals to image
     n_frames_in_plot = 60  
@@ -157,7 +160,7 @@ def make_frame(data, n_fibers, videos, fps, t):
 # ---------------------------------------------------------------------------- #
 #                                 VIDEO CREATOR                                #
 # ---------------------------------------------------------------------------- #
-def make_video(folder, fps, overwrite=False, **kwargs):
+def make_video(folder, fps, overwrite=False, padding=60, start_frame=0, end_frame=-1, **kwargs):
     """
         Creates a 'composite' video with behaviour and calcium data
 
@@ -166,7 +169,8 @@ def make_video(folder, fps, overwrite=False, **kwargs):
         :param overwrite: bool if False it avoids overwriting a previously generated video
     """
     # setup
-    files, outpath, data, n_fibers = setup(folder, "_comp.mp4", overwrite, **kwargs)
+    files, outpath, data, n_fibers = setup(folder,  "_comp_{}_{}.mp4".format(start_frame, end_frame),\
+         overwrite, **kwargs)
     if files is None: 
         return
     if len(data) < 2000: 
@@ -177,13 +181,14 @@ def make_video(folder, fps, overwrite=False, **kwargs):
             if '.mp4' in f or '.avi' in f and f is not None}
 
     # Create video
-    duration = len(data)/fps
-    animation = VideoClip(partial(make_frame, data, n_fibers, caps, fps), 
-                        duration=duration)
+    cut_data = data[start_frame:end_frame]
+    duration = len(cut_data)/fps
+    animation = VideoClip(partial(make_frame, data, n_fibers, caps, fps, start_frame), 
+                        duration=duration,  has_constant_size=True)
 
     # Export/save
     animation.write_videofile(outpath, fps=fps) 
 
 # ---------------------------------------------------------------------------- #
 if __name__ == "__main__":
-    make_video(folder, fps, overwrite=True)
+    make_video(folder, fps, overwrite=True, start_frame=100, end_frame=200)
