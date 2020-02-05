@@ -1,3 +1,8 @@
+*/.vscode
+.vscode
+.vscode/
+
+
 # Ignored file types
 *.ckpt
 *.vscode
