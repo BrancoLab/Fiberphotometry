@@ -177,7 +177,7 @@ class ImgProcess:
         """
         print("Trying automated fiber detection for {} recording sites".format(self.n_recording_sites))
         #  GET OVER EXPOSED FRAME
-        self.adjust_camera_exposure(self.cameras[0], 20000)
+        # self.adjust_camera_exposure(self.cameras[0], 20000)
         self.switch_leds_on() # switch on the stimulation LEDs to see the fiber
 
         self.trigger_frame()
@@ -185,7 +185,7 @@ class ImgProcess:
 
         # reset camera and LEDs
         self.switch_leds_off()
-        self.adjust_camera_exposure(self.cameras[0], self.camera_config["acquisition"]["exposure"])
+        # self.adjust_camera_exposure(self.cameras[0], self.camera_config["acquisition"]["exposure"])
 
 
         # If we have multiple cameras we will get a list of frames
