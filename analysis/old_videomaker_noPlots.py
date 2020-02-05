@@ -25,8 +25,8 @@ from fcutils.plotting.plotting_utils import set_figure_subplots_aspect
 
 # ? define folder to process and fps
 # folder = '/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/fiberphot_data/200124_fiberp/240120_id_994382_freelymoving_twofibers_3'
-folder=r"F:\240120_id_994383_freelymoving2"
-fps = 14 # fps at which we acquired the experiment's videos
+folder=r"F:\240120_id_994382_freelymoving_twofibers_3"
+fps =15 # fps at which we acquired the experiment's videos
 
 def scalebar(ax, hideTicks=True, hideFrame=True, fontSize=8, scaleXsize=None, scaleYsize=None, scaleXunits="", scaleYunits="", lineWidth=2): 
      """ 
@@ -122,7 +122,7 @@ def make_frame(data, n_fibers, videos, fps, start_frame, end_frame, xlabel, t):
         :param t: float, time in the video, used to get framenumber
     """
     # ---------------------------------------------------------------------------- #
-    def add_videoframe(ax, cavid, behavid, framen, rescale_fact):
+    def add_videoframe_inset(ax, cavid, behavid, framen, rescale_fact):
         """ 
             Adds a videoframe to a subplot in the frame. 
 
@@ -156,9 +156,34 @@ def make_frame(data, n_fibers, videos, fps, start_frame, end_frame, xlabel, t):
         # Add to ax
         ax.imshow(frame, interpolation="nearest", cmap='gray', aspect='equal')
         ax.axis('off')
-       
+    
+    def add_videoframe(ax, video, framen, rescale_fact):
+        """ 
+            Adds a videoframe to a subplot in the frame. 
+            :param ax: matplotlib Axes object
+            :param video: opencv cap
+            :param framen: int number of frame in video
+            :param rescale_fact: float, positive numbers reduce frame size and negative enlarge it
+        """
+        # Get frame from video
+        video.set(1,framen)
+        ret, frame = video.read()
+        if not ret:
+            raise ValueError("Could not read frame {} from video".format(framen))
+        
+        # scale frame
+        if rescale_fact>0: # make it smaller
+            frame = frame[::rescale_fact,::rescale_fact]
+        elif rescale_fact<0: # make it larger
+            w = frame.shape[0] * np.abs(rescale_fact)
+            h = frame.shape[1] * np.abs(rescale_fact)
+            frame = cv2.resize(frame, (h, w))
 
-    def add_signal_plot(ax, data, framen, n_frames_b4, n_frames_aft, start_frame, end_frame, xlabel = 'frame', legend = [], **kwargs):
+        # Add to ax
+        ax.imshow(frame, interpolation="nearest", cmap='gray', aspect='equal')
+        ax.axis('off')
+    
+    def add_signal_plot(ax, data, framen, n_frames_b4, n_frames_aft, start_frame, end_frame, xlabel = 'frame', **kwargs):
         """
             Adds a line plot to one of the subplots.
 
@@ -176,10 +201,7 @@ def make_frame(data, n_fibers, videos, fps, start_frame, end_frame, xlabel, t):
         # Plot past frames
         ypre = y[framen-n_frames_b4:framen+1]
         xpre = np.arange(len(ypre))
-        if legend:
-            ax.plot(xpre, ypre, alpha=1, label = legend, **kwargs)
-        else:
-            ax.plot(xpre, ypre, alpha=1, **kwargs)
+        ax.plot(xpre, ypre, alpha=1, **kwargs)
 
         # Plot future frames
         ypost = y[framen:framen+n_frames_aft]
@@ -197,109 +219,49 @@ def make_frame(data, n_fibers, videos, fps, start_frame, end_frame, xlabel, t):
             xl = [int(x / fps) for x in xl]
         ax.set(xticks=x, xticklabels=xl)
         
-        if legend:
-            leg = ax.legend(prop = {'weight':'bold', 'size':17}, loc = 1, frameon = False)
-            for line, text in zip(leg.get_lines(), leg.get_texts()):
-                text.set_color(line.get_color())
-        
+#        ax.set_ylim(np.nanmin(data[np.min([2,start_frame-nframes]):np.max([len(data),end_frame+nframes])]),
+#                    np.nanmax(data[np.min([2,start_frame-nframes]):np.max([len(data),end_frame+nframes])]))
 
     # ---------------------------------------------------------------------------- #
     # Create subplots
     
     plt.ioff()
     
-#    for long rectangular videos:
-    f = plt.figure(constrained_layout=True,figsize=(28, 10))
-    gs = f.add_gridspec(nrows=4, ncols=2, height_ratios=[1,1,1,1],width_ratios=[4,3])
-    
-#    #for square videos
-#    f = plt.figure(constrained_layout=True,figsize=(20, 10))
-#    gs = f.add_gridspec(nrows=4, ncols=2, height_ratios=[1,1,1,1],width_ratios=[2,3]) 
-    
-    videos_frame_ax = f.add_subplot(gs[:, 0])
-    blue_ax = f.add_subplot(gs[0, 1])
-    violet_ax = f.add_subplot(gs[1, 1])
-    dff_ax = f.add_subplot(gs[2, 1])
-    motion_ax = f.add_subplot(gs[3, 1])
-    #ldr_ax = motion_ax.twinx()
-    #ldr_ax.spines["right"].set_visible(True)
+    f, axes = plt.subplots(1, 2, figsize=(20, 10),\
+                gridspec_kw={'width_ratios': [1, 3]})
+    fibers_frame_ax = axes[0]
+    behav_frame_ax = axes[1]
+
     
     # get frame number
     framen= int(t*fps)+start_frame 
 
     # add video frames to image
-    add_videoframe(videos_frame_ax, videos['calcium'],  videos['behaviour'], framen, 2)
-
-    # Add signals to image
-    n_frames_b4 = 90
-    n_frames_aft = 60
+  #  add_videoframe_inset(videos_frame_ax, videos['calcium'],  videos['behaviour'], framen, 2)
+    add_videoframe(fibers_frame_ax, videos['calcium'], framen, 2)
+    add_videoframe(behav_frame_ax, videos['behaviour'], framen, -2)
     
-    plot_start = np.max([2,start_frame-n_frames_b4])
-    plot_end = np.min([len(data),end_frame+n_frames_aft])
-    
-    behav_mvmt_norm = (data['behav_mvmt']-np.nanmin(data['behav_mvmt'][plot_start:plot_end]))/(np.nanmax(data['behav_mvmt'][plot_start:plot_end])-np.nanmin(data['behav_mvmt'][plot_start:plot_end]))
-    ldr_norm = (data['ldr']-np.nanmin(data['ldr']))/np.nanmax([4.5,np.nanmax(data['ldr'])])
-    add_signal_plot(motion_ax, behav_mvmt_norm, framen, n_frames_b4, n_frames_aft, start_frame, end_frame, legend = 'Locomotion', xlabel = xlabel, color=motion_color, lw=3)
-    add_signal_plot(motion_ax, ldr_norm, framen,  n_frames_b4, n_frames_aft,  start_frame, end_frame, legend ='Visual stim', xlabel = xlabel, color=ldr_color, lw=3)
-    
-    add_signal_plot(blue_ax, data['ch_0_signal'], framen,  n_frames_b4, n_frames_aft, start_frame, end_frame, legend = 'Blue LED', xlabel = xlabel, color=blueled, lw=3)
-    add_signal_plot(violet_ax, data['ch_0_motion'], framen,  n_frames_b4, n_frames_aft, start_frame, end_frame, legend = 'Violet LED', xlabel = xlabel,  color=violetled, lw=3)
-    add_signal_plot(dff_ax, data['ch_0_corrected'], framen,  n_frames_b4, n_frames_aft,  start_frame, end_frame, legend = 'Corrected signal', xlabel = xlabel,  color=blue_dff_color, lw=3)
-    
-    #set y axis range
-    [blue_min, violet_min, dff_min] = [ np.nanmin(data['ch_0_signal'][plot_start:plot_end]),
-                                        np.nanmin(data['ch_0_motion'][plot_start:plot_end]),
-                                        np.nanmin(data['ch_0_corrected'][plot_start:plot_end])  ]
-    
-    [blue_max, violet_max, dff_max] = [ np.nanmax(data['ch_0_signal'][plot_start:plot_end]),
-                                        np.nanmax(data['ch_0_motion'][plot_start:plot_end]),
-                                        np.nanmax(data['ch_0_corrected'][plot_start:plot_end])  ]
-    
-    raw_halfrange = np.max([blue_max - blue_min, violet_max - violet_min])*1.2 /2
-    dff_halfrange = (dff_max - dff_min)*1.2 /2
-    
-    blue_ax.set_ylim(np.mean([blue_max, blue_min])-raw_halfrange, np.mean([blue_max, blue_min])+raw_halfrange)
-    violet_ax.set_ylim(np.mean([violet_max, violet_min])-raw_halfrange, np.mean([violet_max, violet_min])+raw_halfrange)
-    dff_ax.set_ylim(np.mean([dff_max, dff_min])-dff_halfrange, np.mean([dff_max, dff_min])+dff_halfrange)
-    motion_ax.set_ylim(0,1)
-    
+      
     # Decorate axes
-    videos_frame_ax.set(xticks=[], yticks=[])
-    motion_ax.set(xlabel = 'time (s)')
-    
-    for [ax, title, color, ylabel] in zip(  [blue_ax, violet_ax, dff_ax,motion_ax],
-                                            ['Blue led', 'Violet led', 'Corrected signal', ''], 
-                                            [blueled, violetled, blue_dff_color, 'black'],
-                                            ['intensity', 'intensity', 'dF/F', 'au']        ):
-        
-#        ax.set_title(label = title, color = color, fontweight = 'bold')
-        ax.set_ylabel(ylabel)
-        ax.tick_params(labelsize=15)
-        
-        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-            item.set_fontsize(17)
-    
-#    motion_ax.set_ylabel('Motion (a.u.)', color=motion_color)  
-#    ldr_ax.set_ylabel('LDR (a.u.)', color=ldr_color)  
-#    ldr_ax.set_ylim(0,1)
+    fibers_frame_ax.set(xticks=[], yticks=[])
+    behav_frame_ax.set(xticks=[], yticks=[])
 
     # improve aestethics
     # Use these values to change subplots aspect
     sns.despine(offset=10, trim=True)
-#    sns.despine(ax=motion_ax, right=False, left=False) 
- #   sns.despine(ax=ldr_ax, left=True, right=False) 
+
 
     set_figure_subplots_aspect(
-        left  = 0.03,  # the left side of the subplots of the figure
-        right = 0.99,    # the right side of the subplots of the figure
-        bottom = 0.05,   # the bottom of the subplots of the figure
-        top = 0.95,      # the top of the subplots of the figure
-        wspace = 0.15,   # the amount of width reserved for blank space between subplots
-        hspace = 0.4,   # the amount of height reserved for white space between subplots
+        left  = 0.125,  # the left side of the subplots of the figure
+        right = 0.9,    # the right side of the subplots of the figure
+        bottom = 0.06,   # the bottom of the subplots of the figure
+        top = 0.96,      # the top of the subplots of the figure
+        wspace = 0.2,   # the amount of width reserved for blank space between subplots
+        hspace = 0.3,   # the amount of height reserved for white space between subplots
     )
 
     # export image
-#    f.tight_layout(rect=(0,0,0.95,1))
+    f.tight_layout(rect=(0,0,0.95,1))
     f.canvas.draw()
     img = np.array(f.canvas.renderer.buffer_rgba())
     plt.close(f)
@@ -342,7 +304,7 @@ def make_video(folder, fps, overwrite=False, padding=60, start_frame=2, end_fram
 
 # ---------------------------------------------------------------------------- #
 if __name__ == "__main__":
-    make_video(folder, fps, overwrite=True, start_frame=1740, end_frame=2300, xlabel = 'time (s)')
+    make_video(folder, fps, overwrite=True, start_frame=3605, end_frame=4005, xlabel = 'time (s)')
 
 
 

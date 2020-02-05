@@ -10,7 +10,7 @@ exp_dir: '240120_id_994382_freelymoving_twofibers_3'  # this is specific to each
 #                              EXPERIMENT METADATA                             #
 # ---------------------------------------------------------------------------- #
 n_recording_sites: 1
-single_fiber_diameter: 200 # 500 # 275  # diameter in pixels of one fiber on the frame
+single_fiber_diameter: 550 # 500 # 275  # diameter in pixels of one fiber on the frame
 single_fiber_radius_titration: 25 # remove N pixels from the radius of ROIs to be more conservative
 detect_fibers_manual: False # if false automatic detection is attempted, but this doesn't work very well at the moment
 fast_signal_extraction: True # If True a faster but less sensitive method for signal extraction is used
@@ -56,7 +56,7 @@ niboard_config:
 # ---------------------------------------------------------------------------- #
 camera_config:
     video_format: .avi
-    n_cameras: 1
+    n_cameras: 2
     timeout: 1000   # frame acquisition timeout
 
     # Trigger mode and acquisition options -> needed for constant framerate
@@ -64,7 +64,7 @@ camera_config:
 
     calcium_camera: fiberphotometry_ca2
     acquisition:     # ||| change this parameters to set up camera acquisition as required
-        exposure: "5000"
+        exposure: "20000"
         frame_width: "1024"  # must be a multiple of 32
         frame_height: "1024" # must be a multiple of 32
         gain: "12"
@@ -73,7 +73,7 @@ camera_config:
 
     behaviour_camera: 'fiberphotometry_behav'
     behaviour_acquisition:     # ||| change this parameters to set up camera acquisition as required
-        exposure: "5000"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
+        exposure: "20000"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON
         frame_width: "1440"  # 1024# must be a multiple of 32
         frame_height: "576" # must be a multiple of 32
         gain: "12"   # !CURRENTLY THIS OPTION NEEDS TO BE CHANGED IN NI MAX, CAN'T DO IT IN PYTHON

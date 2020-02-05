@@ -20,7 +20,7 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_shaded_withline, ortholines
 
 
-folder = "F:\\240120_id_994832_freelymoving"
+folder = r"F:\240120_id_994382_freelymoving_twofibers_3"
 
 
 def plot_session_traces(folder, overwrite=True, **kwargs):
@@ -169,7 +169,7 @@ def plot_session_psth(folder, overwrite=True, baseline_frames = 30, plot_shuffle
 def plot_session_psth_locomotion(folder, overwrite=True, baseline_frames = 30, plot_shuffled=True,
                 show_individual_trials=False, post_frames=30, **kwargs):
     # Set up data
-    files, outpath, data, n_fibers = setup(folder, "_session_psth.png", overwrite, **kwargs)
+    files, outpath, data, n_fibers = setup(folder, "_session_psth_locomotion.png", overwrite, **kwargs)
     if data is None: return
     stim_onset, stim_offset = get_stimuli_from_ldr(data['ldr'])
     
@@ -230,7 +230,7 @@ def plot_session_psth_locomotion(folder, overwrite=True, baseline_frames = 30, p
         mn, err = np.nanmean(high_trs, axis=0), stats.sem(high_trs, axis=0,nan_policy='omit')
         x = np.arange(len(mn))
         ax.plot(x, mn, lw=4, color=(0.2353, 0.7020, 0.4431), alpha=0.5, zorder=99, label='high_locomotion')
-        ax.fill_between(x, mn-err, mn+err, color=(0.2353, 0.7020, 0.4431), alpha=.2, zorder=90)
+        ax.fill_between(x, mn-err, mn+err, color=violetled, alpha=.2, zorder=90)
         
         # plot mean + error for shuffled data
         if plot_shuffled:
@@ -258,6 +258,7 @@ def plot_session_psth_locomotion(folder, overwrite=True, baseline_frames = 30, p
         hspace = 0.5,   # the amount of height reserved for white space between subplots
     )
     
-
+    save_figure(f, outpath.split(".png")[0])
+    
 if __name__ == "__main__":
     plot_session_traces(folder, overwrite=True)

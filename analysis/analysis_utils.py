@@ -14,9 +14,9 @@ from fcutils.maths.filtering import median_filter_1d
 
 # ? Define a bunch of colors
 blueled = lightskyblue
-blue_dff_color = plum
-violetled = violet
-motion_color = thistle
+blue_dff_color = '#87deaaff'
+violetled = plum
+motion_color = goldenrod
 ldr_color = salmon
 
 
