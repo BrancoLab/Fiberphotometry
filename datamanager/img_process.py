@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from multiprocessing import Pool
 from functools import partial
 
-from utils.colors import MplColorHelper
-from utils.file_io import append_csv_file
+from fcutils.plotting.colors import MplColorHelper
+from fcutils.file_io.file_io import append_csv_file
 
 class ImgProcess:
     def __init__(self):

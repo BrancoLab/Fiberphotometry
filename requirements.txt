@@ -1,0 +1,11 @@
+numpy
+pandas
+moviepy
+tqdm
+python-opencv
+matplotlib
+seaborn
+sklearn
+scipy
+psychopy
+pypylon

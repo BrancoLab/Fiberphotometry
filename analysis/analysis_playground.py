@@ -8,12 +8,11 @@ from sklearn.linear_model import LinearRegression
 from sklearn import metrics
 from scipy import stats
 import matplotlib.pyplot as plt
-%matplotlib inline
 
 
-from utils.maths.filtering import *
-from utils.maths.stimuli_detection import *
-from utils.colors import *
+from fcutils.maths.filtering import *
+from fcutils.maths.stimuli_detection import *
+from fcutils.plotting.colors import *
 
 mvmtc = darkturquoise
 ldrc = salmon
@@ -24,8 +23,8 @@ ldr_offc = darkorange
 
 
 # %%
-main_fld = "Z:\\swc\\branco\\rig_photometry\\191213"
-exp_flds = ["191213_994832_right_2", "191213_994832_right_3"]
+main_fld = "F:\\"
+exp_flds = ["240120_id_994832"]
 
 b, v, mvmt, ldr = [], [], [], []
 for f in exp_flds:
@@ -89,7 +88,7 @@ axarr[0].plot(b, color=blueled, zorder=99)
 axarr[1].plot(v, color=violetled, zorder=99)
 
 axarr[2].plot(corrected_b, color='k', alpha=.8)
-axarr[2].plot(line_smoother(corrected_b), color='r', lw=2, zorder=99)
+#axarr[2].plot(line_smoother(corrected_b), color='r', lw=2, zorder=99)
 
 axarr[3].plot(ldr2, color=ldrc, lw=2)
 

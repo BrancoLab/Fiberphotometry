@@ -2,7 +2,7 @@ import sys
 sys.path.append("./")
 import os
 
-from utils.file_io import load_yaml
+from fcutils.file_io.file import load_yaml
 
 
 class SettingsParser:
