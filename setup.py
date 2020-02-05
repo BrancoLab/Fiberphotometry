@@ -12,6 +12,7 @@ requirements = [
 "scipy",
 "psychopy",
 "pypylon",
+"fancylog"
 ]
 
 

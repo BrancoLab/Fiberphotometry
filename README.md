@@ -11,7 +11,7 @@ If you don't have one already, start by creating a python environment with pytho
 
 Then install the `fiberphotometry` package with
 ```
-    pip install git+https://github.com/BrancoLab/Behaviour.git
+    pip install git+https://github.com/BrancoLab/fiberphotometry.git
 ```
 
 The package requires additional libraries that can be installed from github with:
