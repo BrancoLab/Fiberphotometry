@@ -1,5 +1,6 @@
 import os
 import logging
+import sys
 
 from fancylog import fancylog
 import fancylog as package
@@ -10,6 +11,8 @@ from behaviour.utilities.signals import get_frames_times_from_squarewave_signal
 from tdmstovideo.converter import convert
 from fcutils.file_io.utils import check_file_exists, get_file_name
 from fcutils.file_io.io import save_json, load_json
+
+from fiberphotometry.preprocessing.plotting import plot_frame_times
 
 
 # ? For debugging 
@@ -33,7 +36,8 @@ class Pipeline:
     def __init__(self, data_folder, ca_video_tdms,
                     ca_video_path=None, fps=100,
                     overwrite=False, run_conversion=True,
-                    extract_frame_times=True, logging=False, **kwargs):
+                    extract_frame_times=True, logging=False, 
+                    debug=False, **kwargs):
         """
             Pipeline to preprocess fiberphotometry data. IT:
                 1) Converts video.tdms to .mp4
@@ -51,6 +55,7 @@ class Pipeline:
             :param logging: set as true if fancylog logging was started by another application. 
             :param kwargs: used to pass params for extract_frame_times: [analog_inputs_tdms, camera_triggers_channel,
                         blue_led_triggers_channel, violet_led_triggers_channel]
+            :param debug: bool, if True extra plots are made
             
         """
         # Params
@@ -62,6 +67,7 @@ class Pipeline:
         self.fps = fps
         self.extract_frame_times = extract_frame_times
         self.logging = logging
+        self.debug = debug
 
         # extra additional params
         self.analog_inputs_tdms = kwargs.get('analog_inputs_tdms', None)
@@ -127,6 +133,13 @@ class Pipeline:
         else:
             frame_starts = None
 
+        if self.debug and frame_starts is not None:
+            logging.disable(sys.maxsize)
+            inputs = get_analog_inputs_clean_dataframe(self.analog_inputs_tdms, is_opened=False)
+            plot_frame_times(inputs[self.camera_triggers_channel],
+                            inputs[self.blue_led_triggers_channel], 
+                            inputs[self.violet_led_triggers_channel], frame_starts)
+
 
     def check_for_dropped_frames(self):
         """
@@ -147,7 +160,7 @@ class Pipeline:
         """
             Converts video .tdms to mp4.
         """
-        if check_file_exists(self.ca_video_path) and not self.overwrite:
+        if check_file_exists(self.ca_video_path):
             logging.info("Converted video file exists already, skipping conversion")
         else:
             logging.info("Converting .tdms video to .mp4")
@@ -168,7 +181,6 @@ class Pipeline:
         """
 
     def extract_frames(self, experiment_name):
-
         self.frames_times_file = os.path.join(self.data_folder, experiment_name+"frame_times.json")
 
         if check_file_exists(self.frames_times_file) and not self.overwrite:
@@ -186,7 +198,7 @@ class Pipeline:
         frame_starts = {}
         for name, channel in zip(['calcium_camera', 'blue_led', 'violet_led'], 
                         [self.camera_triggers_channel, self.blue_led_triggers_channel, self.violet_led_triggers_channel]):
-            frame_starts[name] = [int(x) for x in list(get_frames_times_from_squarewave_signal(inputs[channel].values, debug=False))]
+            frame_starts[name] = [int(x) for x in list(get_frames_times_from_squarewave_signal(inputs[channel].values))]
 
         # Save
         save_json(self.frames_times_file, frame_starts, append=False)
@@ -198,11 +210,12 @@ class Pipeline:
 if __name__ == '__main__':
     pipe = Pipeline(data_folder, ca_video_tdms,
                     ca_video_path=None, fps=100,
-                    overwrite=False, run_conversion=True,
+                    overwrite=True, run_conversion=True,
                     extract_frame_times=True, logging=False, 
                     analog_inputs_tdms=analog_inputs_tdms,
                     camera_triggers_channel=camera_triggers_channel,
                     blue_led_triggers_channel=blue_led_triggers_channel,
-                    violet_led_triggers_channel=violet_led_triggers_channel,)
+                    violet_led_triggers_channel=violet_led_triggers_channel,
+                    debug=True)
 
     pipe.run()
