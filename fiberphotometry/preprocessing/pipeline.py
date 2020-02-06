@@ -9,12 +9,24 @@ from behaviour.tdms.utils import get_analog_inputs_clean_dataframe, get_analog_i
 from behaviour.utilities.signals import get_frames_times_from_squarewave_signal
 from tdmstovideo.converter import convert
 from fcutils.file_io.utils import check_file_exists, get_file_name
-from fcutils.file_io.io import save_yaml
+from fcutils.file_io.io import save_json, load_json
 
 
+# ? For debugging 
+data_folder = "Z:\\swc\\branco\\rig_photometry\\tests\\200205\\200205_mantis_test_longer_exposure_noaudio"
+ca_video_tdms = "FP_calcium_and_behaviour(0)-FP_calcium_camera.tdms"
+ca_video_path = None # If left as None it will save it the same folder and with the same name as the tdms file
+FPS = 100
 
+OVERWRITE = False # If true it will overwrite the results of a previous analysis
+RUN_CONVERSION = True # If true it will convert the tdms video to mp4
+EXTRACT_FRAME_TIMES = True # If true it will extract the time of blue and violed LEDs frames from analog inputs (slow)
 
-
+# To extrac frame times
+analog_inputs_tdms = "FP_calcium_and_behaviour(0).tdms"
+camera_triggers_channel='FP_calcium_camera_triggers_reading'
+blue_led_triggers_channel='FP_blue_led_reading'
+violet_led_triggers_channel='FP_violet_led_reading'
 
 
 class Pipeline:
@@ -38,7 +50,7 @@ class Pipeline:
                         from analog inputs files.
             :param logging: set as true if fancylog logging was started by another application. 
             :param kwargs: used to pass params for extract_frame_times: [analog_inputs_tdms, camera_triggers_channel,
-                        bue_led_triggers_channel, violet_led_triggers_channel]
+                        blue_led_triggers_channel, violet_led_triggers_channel]
             
         """
         # Params
@@ -52,10 +64,10 @@ class Pipeline:
         self.logging = logging
 
         # extra additional params
-        self.analog_inputs_tdms = kwargs.pop('analog_inputs_tdm', None)
-        self.camera_triggers_channel = kwargs.pop('camera_triggers_channe', None)
-        self.bue_led_triggers_channel = kwargs.pop('bue_led_triggers_channe', None)
-        self.violet_led_triggers_channel = kwargs.pop('violet_led_triggers_channe', None)
+        self.analog_inputs_tdms = kwargs.get('analog_inputs_tdms', None)
+        self.camera_triggers_channel = kwargs.get('camera_triggers_channel', None)
+        self.blue_led_triggers_channel = kwargs.get('blue_led_triggers_channel', None)
+        self.violet_led_triggers_channel = kwargs.get('violet_led_triggers_channel', None)
 
         self.setup()
 
@@ -70,15 +82,17 @@ class Pipeline:
         self.ca_video_metadata_tdms = os.path.join(self.data_folder, get_file_name(self.ca_video_tdms)+"meta.tdms")
 
         if self.extract_frame_times:
-            self.analog_inputs_tdms = os.path.join(self.data_folder, self.analog_inputs_tdms)
+            try:
+                self.analog_inputs_tdms = os.path.join(self.data_folder, self.analog_inputs_tdms)
+            except Exception as e:
+                raise ValueError("Could not get filepath for analong inputs tdms: \n{}".format(e))
             check_file_exists(self.analog_inputs_tdms, raise_error=True)
 
         # Start logging
         if not self.logging:
-            fancylog.start_logging(self.data_folder, package, verbose=True, filename="fp_preprocessing",
-                    multiprocessing_aware=False, write_cli_args=False)
+            fancylog.start_logging(self.data_folder, package, verbose=True, filename="fp_preprocessing")
             logging.info("Starting to preprocess files:")
-            logging.info(self.data_folder, self.ca_video_tdms, self.ca_video_metadata_tdms, self.ca_video_path)
+            logging.info("{}\n{}\n{}\n{}\n".format(self.data_folder, self.ca_video_tdms, self.ca_video_metadata_tdms, self.ca_video_path))
 
         # check files exist
         video_exists = check_file_exists(self.ca_video_tdms)
@@ -154,45 +168,41 @@ class Pipeline:
         """
 
     def extract_frames(self, experiment_name):
-        logging.info("Extracting frame times.")
 
-        self.frames_times_file = os.path.join(self.data_folder, experiment_name+"frame_times.yml")
+        self.frames_times_file = os.path.join(self.data_folder, experiment_name+"frame_times.json")
 
         if check_file_exists(self.frames_times_file) and not self.overwrite:
             logging.info("Frames times file exists already, skipping. ")
+            return load_json(self.frames_times_file)
         else:
-            logging.info("No frames times file found, running analysis")
+            logging.info("Extracting frame times.")
+
 
         # Load analog inputs
+        logging.info("Loading analog inputs tdms, might take a while...")
         inputs = get_analog_inputs_clean_dataframe(self.analog_inputs_tdms, is_opened=False)
 
         # Extract frame start time
         frame_starts = {}
         for name, channel in zip(['calcium_camera', 'blue_led', 'violet_led'], 
-                        [self.camera_triggers_channel, self.bue_led_triggers_channel, self.violet_led_triggers_channel]):
-            frame_starts[name] = get_frames_times_from_squarewave_signal(inputs[channel].values, debug=False)
+                        [self.camera_triggers_channel, self.blue_led_triggers_channel, self.violet_led_triggers_channel]):
+            frame_starts[name] = [int(x) for x in list(get_frames_times_from_squarewave_signal(inputs[channel].values, debug=False))]
 
         # Save
-        save_yaml(self.frames_times_file, frame_starts, append=False)
+        save_json(self.frames_times_file, frame_starts, append=False)
         logging.info("Saved frame times at self.frames_times_file")
         return frame_starts
 
 
 
 if __name__ == '__main__':
-    data_folder = "Z:\\swc\\branco\\rig_photometry\\tests\\200205\\200205_mantis_test_longer_exposure_noaudio"
-    ca_video_tdms = "FP_calcium_and_behaviour(0)-FP_calcium_camera.tdms"
-    ca_video_path = None # If left as None it will save it the same folder and with the same name as the tdms file
-    FPS = 100
+    pipe = Pipeline(data_folder, ca_video_tdms,
+                    ca_video_path=None, fps=100,
+                    overwrite=False, run_conversion=True,
+                    extract_frame_times=True, logging=False, 
+                    analog_inputs_tdms=analog_inputs_tdms,
+                    camera_triggers_channel=camera_triggers_channel,
+                    blue_led_triggers_channel=blue_led_triggers_channel,
+                    violet_led_triggers_channel=violet_led_triggers_channel,)
 
-    OVERWRITE = False # If true it will overwrite the results of a previous analysis
-    RUN_CONVERSION = True # If true it will convert the tdms video to mp4
-    EXTRACT_FRAME_TIMES = True # If true it will extract the time of blue and violed LEDs frames from analog inputs (slow)
-
-    # ? To extrac frame times
-    analog_inputs_tdms = "FP_calcium_and_behaviour(0).tdms"
-    camera_triggers_channel='FP_calciumcamera_triggers_reading'
-    bue_led_triggers_channel='camera_triggers_channel'
-    violet_led_triggers_channel='camera_triggers_channel'
-
-
+    pipe.run()
