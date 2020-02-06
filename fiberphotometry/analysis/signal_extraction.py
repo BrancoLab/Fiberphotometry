@@ -16,11 +16,11 @@ sys.path.append('./')
 from fcutils.file_io.utils import get_file_name, check_file_exists
 from fcutils.video.utils import get_cap_from_file, get_cap_selected_frame, get_video_params, cap_set_frame
 
-from fiberphotometry.analysis.utils import manually_define_rois
+from fiberphotometry.analysis.utils import manually_define_rois, split_blue_violet_channels
 
 
 class SignalExtraction:
-    def __init__(self, video_path, n_rois=4, roi_radius=150, save_path=None, overwrite=False):
+    def __init__(self, video_path, n_rois=4, roi_radius=125, save_path=None, overwrite=False):
 
         # Open video and store a few related vars
         self.video_path = video_path
@@ -94,16 +94,22 @@ class SignalExtraction:
             if not ret: 
                 raise ValueError("Could not read frame {}".format(i))
 
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
             for n, mask in enumerate(self.ROI_masks):
                 if use_cupy:
-                    masked = (frame[:, :, 0] * mask).astype(cp.float64)
+                    masked = (frame * mask).astype(cp.float64)
                     traces[n][frame_n] = cp.nanmean(masked.astype(cp.uint8))
                 else:
-                    masked = (frame[:, :, 0] * mask).astype(np.float64)
+                    masked = (frame * mask).astype(np.float64)
                     traces[n][frame_n] = np.nanmean(masked.astype(np.uint8))
-                
-        print("Extraction completed. Saving at: {}".format(self.save_path))
         traces = pd.DataFrame(traces)
+
+        # Split blue and violet traces
+        traces = split_blue_violet_channels(traces)
+
+        # Save and return
+        print("Extraction completed. Saving at: {}".format(self.save_path))
         traces.to_hdf(self.save_path, key='hdf')
         return traces
 
