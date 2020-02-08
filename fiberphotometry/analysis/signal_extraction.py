@@ -10,6 +10,8 @@ import numpy as np
 import cv2
 from tqdm import tqdm
 import pandas as pd
+from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit
 
 sys.path.append('./')
 
@@ -20,7 +22,8 @@ from fiberphotometry.analysis.utils import manually_define_rois, split_blue_viol
 
 
 class SignalExtraction:
-    def __init__(self, video_path, n_rois=4, roi_radius=125, save_path=None, overwrite=False):
+    def __init__(self, video_path, n_rois=4, roi_radius=125, 
+                    save_path=None, overwrite=False):
 
         # Open video and store a few related vars
         self.video_path = video_path
@@ -38,10 +41,15 @@ class SignalExtraction:
             self.save_path = save_path
         else:
             self.save_path = self.video_path.split(".")[0]+"_traces.hdf"
+        self.save_raw_path = self.video_path.split(".")[0]+"_raw."+self.video_path.split(".")[1]
         self.overwrite = overwrite
 
         self.ROI_masks = []
 
+
+    # ---------------------------------------------------------------------------- #
+    #                         EXTRACTING SIGNAL FROM VIDEO                         #
+    # ---------------------------------------------------------------------------- #
 
     def get_ROI_masks(self, mode='manual'):
         """
@@ -104,18 +112,77 @@ class SignalExtraction:
                     masked = (frame * mask).astype(np.float64)
                     traces[n][frame_n] = np.nanmean(masked.astype(np.uint8))
         traces = pd.DataFrame(traces)
+        raw_traces = trace.copy()
 
         # Split blue and violet traces
         traces = split_blue_violet_channels(traces)
 
+        # Remove double exponential
+        traces = self.remove_double_exponential(traces)
+
+        # Compute DF/F
+        traces = self.compute_dff(traces)
+
+        # Regress violet from blue. 
+        traces = self.regress_violet_from_blue(traces)
+        
         # Save and return
-        print("Extraction completed. Saving at: {}".format(self.save_path))
-        traces.to_hdf(self.save_path, key='hdf')
+        print("Extraction completed.")
+        print("Saving  raw traces at: {}".format(self.save_raw_path))
+        raw_traces.to_hdf(self.savsave_raw_pathe_path, key='hdf')
+        print("Saving  processed traces at: {}".format(self.save_path))
+        traces.to_hdf(self.savsave_pathe_path, key='hdf')
+        return raw_traces, traces
+
+    # ---------------------------------------------------------------------------- #
+    #                                EXTRACTING DF/F                               #
+    # ---------------------------------------------------------------------------- #
+        
+    def double_exponential(x, a, b, c, d):
+        return a * np.exp(b * x) + c * np.exp(d*x)
+
+    def remove_exponential_from_trace(x, y):
+        """ Fits a double exponential to the data and returns the results
+        
+            :param x: np.array with time indices
+            :param y: np.array with signal
+
+            :returns: np.array with doble exponential corrected out
+        """
+        popt, pcov = curve_fit(double_exponential, x, y, 
+                            maxfev=2000, 
+                            p0=(1.0,  -1e-6, 1.0,  -1e-6),
+                            bounds = [[1, -1e-1, 1, -1e-1], [100, 0, 100, 0]])
+
+        fitted_doubleexp = double_exponential(x, *popt)
+        y_pred = y - (fitted_doubleexp - np.min(fitted_doubleexp))
+        return y_pred
+
+    def remove_double_exponential(self, traces):
+        time = np.arange(len(traces))
+        for column in traces.columns:
+            tracees[column] = remove_exponential_from_trace(time, traces.column.values)
+
         return traces
 
+    def compute_dff(self, traces):
+        for column in traces.columns:
+            trace = traces[column].values
+            baseline = np.nanmedian(trace)
+            traces[column] = (trace-baseline)/baseline
+        return traces
 
-        
+    def regress_violet_from_blue(self, traces):
+        for roi_n in np.arange(self.n_rois):
+            blue = traces[str(roi_n)+'_blue'].values
+            violet = traces[str(roi_n)+'_violet'].values
 
+            regressor = LinearRegression()  
+            regressor.fit(violet.reshape(-1, 1), blue.reshape(-1, 1))
+            expected_blue = regressor.predict(violet)        
+            corrected_blue = (blue - expected_blue)/expected_blue
+            traces[str(roi_n)+'_dff'] = corrected_blue
+        return traces
 
 
 if __name__ == "__main__":

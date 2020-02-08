@@ -118,6 +118,7 @@ class Pipeline:
         """
         cameraname, experiment_name = self.check_for_dropped_frames()
 
+        # Convert to mp4
         if self.run_conversion:
             self.convert_video_tdms()
 
