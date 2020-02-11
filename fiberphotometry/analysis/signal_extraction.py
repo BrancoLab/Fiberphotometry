@@ -20,10 +20,17 @@ from fcutils.video.utils import get_cap_from_file, get_cap_selected_frame, get_v
 
 from fiberphotometry.analysis.utils import manually_define_rois, split_blue_violet_channels
 
+DEBUG = False
+if DEBUG:
+    plot_double_exp=False
+    plot_correction=False
+    plot_dff=True
+    import matplotlib.pyplot as plt
 
 class SignalExtraction:
     def __init__(self, video_path, n_rois=4, roi_radius=125, 
-                    save_path=None, overwrite=False):
+                    save_path=None, overwrite=False,
+                    traces_file=None):
 
         # Open video and store a few related vars
         self.video_path = video_path
@@ -31,6 +38,7 @@ class SignalExtraction:
         self.video = get_cap_from_file(video_path)
         self.video_params = get_video_params(self.video) # nframes, width, height, fps
         self.first_frame = get_cap_selected_frame(self.video, 0)
+        
 
         self.n_rois = n_rois
         self.roi_radius = roi_radius
@@ -41,9 +49,13 @@ class SignalExtraction:
             self.save_path = save_path
         else:
             self.save_path = self.video_path.split(".")[0]+"_traces.hdf"
-        self.save_raw_path = self.video_path.split(".")[0]+"_raw."+self.video_path.split(".")[1]
+        self.save_raw_path = self.video_path.split(".")[0]+"_raw_traces.hdf"
         self.overwrite = overwrite
 
+        self.traces_file = traces_file
+        if traces_file is not None:
+            check_file_exists(traces_file, raise_error=True)
+        
         self.ROI_masks = []
 
 
@@ -58,6 +70,10 @@ class SignalExtraction:
             :param frame: first frame of the video to analyse
             :param mode: str, manual for manual ROIs identification, else auto
         """
+        if self.traces_file is not None:
+            print("A traces file was passed, no need to extract ROI locations")
+            return
+
         # Get ROIs
         if mode.lower() != 'manual':
             raise NotImplementedError
@@ -86,62 +102,68 @@ class SignalExtraction:
             print("A path with the results exists already, returning that")
             return pd.read_hdf(self.save_path, key='hdf')
 
-        if not self.ROI_masks: 
+        if not self.ROI_masks and self.traces_file is None: 
             print("No ROI masks were defined, please run get_ROI_masks first")
             return None
 
-        # Reset cap
-        cap_set_frame(self.video, 0)
+        if self.traces_file is None:
+            # Reset cap
+            cap_set_frame(self.video, 0)
 
-        # Perpare arrays to hold the data
-        traces = {k:np.zeros(self.video_params[0]) for k in range(self.n_rois)}
+            # Perpare arrays to hold the data
+            traces = {k:np.zeros(self.video_params[0]) for k in range(self.n_rois)}
 
-        # Extract
-        for frame_n in tqdm(range(self.video_params[0])):
-            ret, frame = self.video.read()
-            if not ret: 
-                raise ValueError("Could not read frame {}".format(i))
+            # Extract
+            if not DEBUG:
+                for frame_n in tqdm(range(self.video_params[0])):
+                    ret, frame = self.video.read()
+                    if not ret: 
+                        raise ValueError("Could not read frame {}".format(i))
 
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            for n, mask in enumerate(self.ROI_masks):
-                if use_cupy:
-                    masked = (frame * mask).astype(cp.float64)
-                    traces[n][frame_n] = cp.nanmean(masked.astype(cp.uint8))
-                else:
-                    masked = (frame * mask).astype(np.float64)
-                    traces[n][frame_n] = np.nanmean(masked.astype(np.uint8))
-        traces = pd.DataFrame(traces)
-        raw_traces = trace.copy()
+                    for n, mask in enumerate(self.ROI_masks):
+                        if use_cupy:
+                            masked = (frame * mask).astype(cp.float64)
+                            traces[n][frame_n] = cp.nanmean(masked.astype(cp.uint8))
+                        else:
+                            masked = (frame * mask).astype(np.float64)
+                            traces[n][frame_n] = np.nanmean(masked.astype(np.uint8))
 
-        # Split blue and violet traces
-        traces = split_blue_violet_channels(traces)
+                traces = pd.DataFrame(traces)
+
+                # Split blue and violet traces
+                traces = split_blue_violet_channels(traces)
+        else:
+            traces = pd.read_hdf(self.traces_file)
+        raw_traces = traces.copy()
+
 
         # Remove double exponential
         traces = self.remove_double_exponential(traces)
 
-        # Compute DF/F
-        traces = self.compute_dff(traces)
-
         # Regress violet from blue. 
         traces = self.regress_violet_from_blue(traces)
-        
+
+        # Compute DF/F
+        traces = self.compute_dff(traces)
+       
         # Save and return
         print("Extraction completed.")
         print("Saving  raw traces at: {}".format(self.save_raw_path))
-        raw_traces.to_hdf(self.savsave_raw_pathe_path, key='hdf')
+        raw_traces.to_hdf(self.save_raw_path, key='hdf')
         print("Saving  processed traces at: {}".format(self.save_path))
-        traces.to_hdf(self.savsave_pathe_path, key='hdf')
+        traces.to_hdf(self.save_path, key='hdf')
         return raw_traces, traces
 
     # ---------------------------------------------------------------------------- #
     #                                EXTRACTING DF/F                               #
     # ---------------------------------------------------------------------------- #
-        
+    @staticmethod
     def double_exponential(x, a, b, c, d):
         return a * np.exp(b * x) + c * np.exp(d*x)
 
-    def remove_exponential_from_trace(x, y):
+    def remove_exponential_from_trace(self, x, y):
         """ Fits a double exponential to the data and returns the results
         
             :param x: np.array with time indices
@@ -149,27 +171,44 @@ class SignalExtraction:
 
             :returns: np.array with doble exponential corrected out
         """
-        popt, pcov = curve_fit(double_exponential, x, y, 
+        popt, pcov = curve_fit(self.double_exponential, x, y,
                             maxfev=2000, 
                             p0=(1.0,  -1e-6, 1.0,  -1e-6),
                             bounds = [[1, -1e-1, 1, -1e-1], [100, 0, 100, 0]])
 
-        fitted_doubleexp = double_exponential(x, *popt)
+        fitted_doubleexp = self.double_exponential(x, *popt)
         y_pred = y - (fitted_doubleexp - np.min(fitted_doubleexp))
-        return y_pred
+        return y_pred, fitted_doubleexp
 
     def remove_double_exponential(self, traces):
         time = np.arange(len(traces))
         for column in traces.columns:
-            tracees[column] = remove_exponential_from_trace(time, traces.column.values)
+            before = traces[column].values.copy()
+
+            traces[column], double_exp = self.remove_exponential_from_trace(time, traces[column].values)
+
+            if DEBUG and plot_double_exp:
+                plt.plot(before, color='green', lw=2, label='raw')
+                plt.plot(traces[column].values, color='k', lw=.5, label='correct')
+                plt.plot(double_exp, color='red', label='double exp')
+                plt.legend()
+                plt.show()
 
         return traces
 
     def compute_dff(self, traces):
         for column in traces.columns:
-            trace = traces[column].values
+            trace = traces[column].values.copy()
             baseline = np.nanmedian(trace)
             traces[column] = (trace-baseline)/baseline
+
+            if DEBUG and plot_dff:
+                f, axarr = plt.subplots(nrows=2)
+                axarr[0].plot(trace, color='k', label='trace')
+                axarr[0].axhline(baseline, color='m', label='baseline')
+                axarr[1].plot(traces[column], color='g', label='dff')
+                for ax in axarr: ax.legend()
+                plt.show()
         return traces
 
     def regress_violet_from_blue(self, traces):
@@ -179,9 +218,18 @@ class SignalExtraction:
 
             regressor = LinearRegression()  
             regressor.fit(violet.reshape(-1, 1), blue.reshape(-1, 1))
-            expected_blue = regressor.predict(violet)        
+            expected_blue = regressor.predict(violet.reshape(-1, 1)).ravel()        
             corrected_blue = (blue - expected_blue)/expected_blue
             traces[str(roi_n)+'_dff'] = corrected_blue
+
+            if DEBUG and plot_correction:
+                f, axarr = plt.subplots(nrows=3)
+                axarr[0].plot(blue, color='b', label='blue')
+                axarr[1].plot(violet, color='m',  label='violet')
+                axarr[1].plot(expected_blue, color='k',  label='expected_blue')
+                axarr[2].plot(corrected_blue, color='red', label='corrected_blue')
+                for ax in axarr: ax.legend()
+                plt.show()
         return traces
 
 
@@ -189,7 +237,7 @@ if __name__ == "__main__":
     video = "Z:\\swc\\branco\\rig_photometry\\tests\\200205\\200205_mantis_test_longer_exposure_noaudio\\FP_calcium_and_behaviour(0)-FP_calcium_camera.mp4"
 
 
-    se = SignalExtraction(video, overwrite=True)
+    se = SignalExtraction(video, overwrite=True, traces_file=None)
     se.get_ROI_masks()
     se.extract_signal()
 

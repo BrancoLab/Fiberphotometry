@@ -8,7 +8,7 @@ from behaviour.utilities.signals import get_times_signal_high_and_low
 # ---------------------------------------------------------------------------- #
 #                                      LDR                                     #
 # ---------------------------------------------------------------------------- #
-def get_ldr_channel(analog_inputs_tdms, ldr_channel='ldr_signal'):
+def get_ldr_channel(analog_inputs_tdms, ldr_channel='FP_ldr_signal'):
     """
         Loads a .tdms with analog inputs readings from an experiment
         and returns the trace with the LDR signal.
@@ -17,6 +17,9 @@ def get_ldr_channel(analog_inputs_tdms, ldr_channel='ldr_signal'):
         :param ldr_channel: str, name of the channel in the mantis experiment
     """
     inputs = get_analog_inputs_clean_dataframe(analog_inputs_tdms, is_opened=False)
+    if ldr_channel not in inputs.columns:
+        raise ValueError("Input channel passed is not correct.\n{} is not in colums {}".format(
+                            ldr_channel, inputs.columns))
     return inputs[ldr_channel].values
 
 def get_stimuli_times_ldr(analog_inputs_tdms, ldr_channel=None):
@@ -69,7 +72,7 @@ def split_blue_violet_channels(traces, blue_first=True):
     new_data = {}
     for col in columns:
         if blue_first:
-            blue = traces[col].values[0:-1:2]
+            blue = traces[col].values[0:-2:2]
             violet = traces[col].values[1:-1:2]
 
         else:
