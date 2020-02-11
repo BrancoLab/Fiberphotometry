@@ -1,13 +1,16 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import sys
+sys.path.append("./")
+
 from fcutils.plotting.utils import create_figure
 from fcutils.plotting.colors import salmon
 
 from fiberphotometry.variables import blue_color, violet_color
 
 
-def plot_traces_df(traces, max_x = 10000):
+def plot_traces_df(traces, max_x = 50000):
     """
         Plot traces from a dataframe
     """
@@ -22,7 +25,7 @@ def plot_traces_df(traces, max_x = 10000):
         else:
             color = salmon
             
-        ax.plot(traces[col][:max_x], color=col)
+        ax.plot(traces[col][:max_x], color=color)
         ax.set(title=col)
 
     plt.show()
