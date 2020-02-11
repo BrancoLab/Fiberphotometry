@@ -1,6 +1,33 @@
 import cv2
 import pandas as pd
 
+from behaviour.tdms.utils import get_analog_inputs_clean_dataframe
+from behaviour.utilities.signals import get_times_signal_high_and_low
+
+
+# ---------------------------------------------------------------------------- #
+#                                      LDR                                     #
+# ---------------------------------------------------------------------------- #
+def get_ldr_channel(analog_inputs_tdms, ldr_channel='ldr_signal'):
+    """
+        Loads a .tdms with analog inputs readings from an experiment
+        and returns the trace with the LDR signal.
+
+        :param analog_inputs_tdms: str, path to file
+        :param ldr_channel: str, name of the channel in the mantis experiment
+    """
+    inputs = get_analog_inputs_clean_dataframe(analog_inputs_tdms, is_opened=False)
+    return inputs[ldr_channel].values
+
+def get_stimuli_times_ldr(analog_inputs_tdms, ldr_channel=None):
+    ldr = get_ldr_channel(analog_inputs_tdms, ldr_channel=ldr_channel)
+    return get_times_signal_high_and_low(ldr, .5)
+
+
+
+# ---------------------------------------------------------------------------- #
+#                               SIGNAL EXTRACTION                              #
+# ---------------------------------------------------------------------------- #
 def manually_define_rois(frame, n_rois, radius):
     """
         Lets user manually define the position of N circular ROIs 
