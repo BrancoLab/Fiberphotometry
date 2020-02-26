@@ -18,7 +18,7 @@ sys.path.append('./')
 from fcutils.file_io.utils import get_file_name, check_file_exists
 from fcutils.video.utils import get_cap_from_file, get_cap_selected_frame, get_video_params, cap_set_frame
 
-from fiberphotometry.analysis.utils import manually_define_rois, split_blue_violet_channels
+from fiberphotometry.analysis.utils import manually_define_rois, split_blue_violet_channels, get_ldr_channel
 
 DEBUG = False
 if DEBUG:
@@ -232,14 +232,39 @@ class SignalExtraction:
                 plt.show()
         return traces
 
+    # ---------------------------------------------------------------------------- #
+    #                                     MISC                                     #
+    # ---------------------------------------------------------------------------- #
+    def add_signal_to_traces(self, traces, signal_file, signal_channel):
+        """
+            Extracts a signal (e.g. LDR analog input) from a .tdms or .pd file
+            and downsamples it to align it to the traces.
+
+            :param traces: pd.DataFrame with traces
+            :param signal_file: str, path to .tdms file
+            :param signal_channel: str, name of the tdms channel to use 
+        """
+        print('Adding signal to traces')
+        signal = get_ldr_channel(signal_file, ldr_channel=signal_channel,
+                downsample_to=len(traces))
+        traces[signal_channel] = signal
+
+        print("Saving  updated processed traces at: {}".format(self.save_path))
+        traces.to_hdf(self.save_path, key='hdf')
+        return traces
+
+
 
 if __name__ == "__main__":
     video = "Z:\\swc\\branco\\rig_photometry\\tests\\200205\\200205_mantis_test_longer_exposure_noaudio\\FP_calcium_and_behaviour(0)-FP_calcium_camera.mp4"
 
 
-    se = SignalExtraction(video, overwrite=True, traces_file=None)
+    se = SignalExtraction(video, overwrite=True, traces_file='test.h5')
     se.get_ROI_masks()
-    se.extract_signal()
+    raw, traces = se.extract_signal()
+
+    signal_file =  r"Z:\swc\branco\rig_photometry\tests\200205\200205_mantis_test_longer_exposure_noaudio\FP_calcium_and_behaviour(0).tdms"
+    se.add_signal_to_traces(traces, signal_file, 'FP_ldr_signal')
 
 
 
