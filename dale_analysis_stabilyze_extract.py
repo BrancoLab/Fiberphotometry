@@ -12,6 +12,10 @@ from fcutils.file_io.utils import listdir, get_file_name
 import os 
 from scipy.signal import medfilt
 
+from behaviour.tracking.tracking import prepare_tracking_data
+from fcutils.maths.filtering import smooth_hanning
+from fcutils.maths.geometry import calc_angle_between_vectors_of_points_2d as calc_angles
+
 """
     Script to analyse preliminary data set by Dale as it fixes the setup. 
 
@@ -26,24 +30,23 @@ from scipy.signal import medfilt
 
 # --------------------------------- settings --------------------------------- #
 RENAME_FRAMES = False
+
 LOAD_FROM_IMAGES = False
 SAVE_THRESH_VIDEO = False
 CROP = False
-STABILIZE = False
+STABILIZE = True
 EXTRACT = False
-ANALYSE = True
+
+ANALYSE = False
 
 # ----------------------------------- paths ---------------------------------- #
 N_FIBERS = 8
 
-fld = Path('D:\\Dropbox (UCL - SWC)\\Photometry\\405nm 8-core\\frames')
+fld = Path(r'D:\Dropbox (UCL)\Photometry\20201015\405nm rotations')
 raw_img_name = 'frame_'
 
-# fld = Path('D:\\Dropbox (UCL - SWC)\\Photometry\\470nm 4-core\\Rotation_take2')
-# raw_img_name = 'fiberphotometry_ca2__40025734__20200626_095739167_'
 basename = fld.parent.name
-
-analysis_fld = fld.parent / 'analysis2'
+analysis_fld = fld.parent / f'analysis {fld.name}'
 analysis_fld.mkdir(exist_ok=True)
 
 main_video = str( analysis_fld/ f'{basename}.mp4')
@@ -59,10 +62,12 @@ figpath = str(analysis_fld / f'{basename}_signal')
 
 # --------------------------------- variables -------------------------------- #
 fps= 25
-TH = 20 # 70  # 40 - used for detecting fiber bundle for cropping
-TH2 = 60 # 120 - used to detect contours for rotation
-crop = 350  #450 # 350
+TH = 40 # 70  # 40 - used for detecting fiber bundle for cropping
+TH2 = 150 # 120 - used to detect contours for rotation
+crop = 350 if N_FIBERS == 4 else 450  #450 # 350
 radius = 80
+
+ANGLE_SHIFT = 5 # to manually offset the rotation-corrected frames 
 
 if N_FIBERS == 4:
     centers = [
@@ -80,17 +85,17 @@ if N_FIBERS == 4:
     }
 
 elif N_FIBERS == 8:
-
     centers = [
-        (330, 145),
+        (330, 180),
         (750, 390),
-        (450, 480),
-        (175, 350),
-        (240, 580),
-        (450, 710),
-        (680, 640),
-        (570, 125),
+        (470, 535),
+        (170, 460),
+        (245, 720),
+        (480, 790),
+        (690, 650),
+        (580, 200),
     ]
+
 
     colors = {
         'roi-0':(255, 0, 0),
@@ -105,9 +110,12 @@ elif N_FIBERS == 8:
 
 # ---------------------------------- Rename ---------------------------------- #
 if RENAME_FRAMES:
-    for f in listdir(str(fld)):
-        name = get_file_name(f)
-        new_name = 'frame_'+ name.split('_')[-1] + '.tiff'
+    files_list = [f for f in listdir(str(fld)) if '.tiff' in f]
+    files = sorted(files_list, key = lambda x: (int(x.split('_')[-1].split('.')[0])))
+    for n, f in enumerate(files):
+        # name = get_file_name(f)
+        # new_name = 'frame_'+ name.split('_')[-1] + '.tiff'
+        new_name = f'frame_{n}.tiff'
         os.rename(f, os.path.join(str(fld), new_name))
 
 # ----------------------------------- load ----------------------------------- #
@@ -117,7 +125,6 @@ if LOAD_FROM_IMAGES:
     print('Making video from frames')
     cap = utils.get_cap_from_images_folder(str(fld), 
                 img_format = f'{raw_img_name}%1d.tiff')
-    nframes, width, height, fps, is_color = utils.get_video_params(cap)
 
     # Save as video
     utils.save_videocap_to_video(cap,main_video, 'mp4', fps=fps)
@@ -142,21 +149,33 @@ if SAVE_THRESH_VIDEO:
         frame = cv2.GaussianBlur(frame,(15,15),0)
         ret, frame = cv2.threshold(frame, TH, 255,cv2.THRESH_BINARY)
 
-        # # morphological transformations
+        # # # morphological transformations
         kernel = np.ones((15,15),np.uint8)
         frame = cv2.erode(frame, kernel, iterations = 2)
         frame = cv2.dilate(frame, kernel, iterations = 4)
 
         # Threshold again
         frame = cv2.GaussianBlur(frame,(91,91),0)
+        frame = cv2.GaussianBlur(frame,(91,91),0)
+        frame = cv2.GaussianBlur(frame,(91,91),0)
+
         ret, frame = cv2.threshold(frame, TH, 255,cv2.THRESH_BINARY)
 
         show = frame.copy()
         contours, hierarchy = cv2.findContours(frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         c = max(contours, key = cv2.contourArea)
+
         x,y,w,h = cv2.boundingRect(c)
         show = cv2.cvtColor(show, cv2.COLOR_GRAY2BGR)
+
+
+
+        hull=cv2.convexHull(c)
+        cent, axes, rad = cv2.fitEllipse(hull)
+        
+        cv2.ellipse(show,cv2.fitEllipse(hull),(0,255,0),2)
         cv2.rectangle(show,(x,y),(x+w,y+h),(0,255,0),2)
+        cv2.circle(show, tuple([int(x) for x in cent]), 10, (0, 0, 255), -1)
 
         cv2.imshow('thresholding', show)
         cv2.waitKey(1)
@@ -184,6 +203,7 @@ if CROP:
         if not ret: break
 
         # Get contour of fiber bundle
+        # if framen == 0:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         contours, hierarchy = cv2.findContours(frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -217,50 +237,72 @@ if CROP:
 
 # --------------------------------- stablize --------------------------------- #
 if STABILIZE:
-    cap = utils.get_cap_from_file( cropped_video)
+    # Check if DLC file exists
+    print(analysis_fld)
+    dlc_output = [f for f in analysis_fld.glob('*.h5')]
+    if not dlc_output:
+        raise FileNotFoundError('Looks like you need to run DLC on the video, Fede')
+
+    # Get angles 
+    tracking = prepare_tracking_data(str(dlc_output[0]), likelihood_th=.1)
+    angles = np.degrees(np.unwrap(np.radians(calc_angles(
+        tracking['center-center'].x,
+        tracking['center-center'].y,
+        tracking['center-out'].x,
+        tracking['center-out'].y,
+    ))))
+
+    
+    angles = smooth_hanning(angles)
+    x = smooth_hanning(tracking['center-center'].x.values)
+    y = smooth_hanning(tracking['center-center'].y.values)
+    plt.plot(x)
+    plt.plot(y)
+    plt.plot(angles)
+    plt.show()
+
+    # Setup opencv writer
+    cap = utils.get_cap_from_file(cropped_video)
     nframes, width, height, fps, is_color = utils.get_video_params(cap)
     writer =  utils.open_cvwriter(stable_video, 
             w=crop * 2, h=crop * 2, framerate=fps, format=".mp4", iscolor=True)
 
-    angles = []
-    for framen in tqdm(np.arange(nframes)):
+    # Save video
+    for angle, xx, yy in zip(angles, x, y):
         ret, frame = cap.read()
         if not ret: break
         original = frame.copy()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # threshold
-        ret, frame = cv2.threshold(frame, TH2, 255,cv2.THRESH_BINARY)
+        # translate
+        center = np.int(frame.shape[0]/2)
+        dx = - (xx - center)
+        dy = - (yy - center)
 
-        # Get contours
-        contours, hierarchy = cv2.findContours(frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-        cv2.drawContours(frame, contours, -1, (0,100,0), 3)
-
-        # Get center
-        c = max(contours, key = cv2.contourArea)
-        M = cv2.moments(c)
-        x = int(M["m10"] / M["m00"])
-        y = int(M["m01"] / M["m00"])
-        cv2.circle(frame, (x, y), 10, (0, 0, 255), 3) 
+        original = imutils.translate(original, dx, dy)
 
         # Rotate frame
-        angle = calc_angle_between_points_of_vector_2d(np.array([crop, y]), np.array([crop, x]))[-1]
-        angles.append(angle)
-        rotated = imutils.rotate(original, angle-90)
+        rotated = imutils.rotate(original, - angle)
 
-        cv2.imshow('frame', rotated)
-        cv2.waitKey(2)
+
+        cv2.imshow('original', rotated)
+        cv2.imshow('frame', frame)
+        cv2.waitKey(10)
         writer.write(rotated)
 
     cap.release()
     writer.release()
 
-    np.save(anglespath, np.array(angles))
+    np.save(anglespath, angles)
 
 
 # ---------------------------------- extract --------------------------------- #
 if EXTRACT:
+    dlc_output = [f for f in analysis_fld.glob('*.h5')]
+    if not dlc_output:
+        raise FileNotFoundError('Looks like you need to run DLC on the video, Fede')
+    tracking = prepare_tracking_data(str(dlc_output[0]), likelihood_th=.1)
+    
     cap = utils.get_cap_from_file(stable_video)
     nframes, width, height, fps, is_color = utils.get_video_params(cap)
     writer =  utils.open_cvwriter(rois_video, 
@@ -271,6 +313,9 @@ if EXTRACT:
         ret, frame = cap.read()
         original = frame.copy()
         if not ret: break
+        if framen < 30: continue
+
+        frame = imutils.rotate(frame, ANGLE_SHIFT)
 
         # Get mask
         masks = {'roi-'+str(i):np.zeros_like(frame) for i in np.arange(N_FIBERS)}
@@ -334,8 +379,8 @@ if ANALYSE:
 
         sig = medfilt(data[col], 9)
 
-        axarr[0].plot(data[col], color='w', lw=5)    
-        axarr[0].plot(data[col], color=color, lw=3, label=col)    
+        axarr[0].plot(sig, color='w', lw=5)    
+        axarr[0].plot(sig, color=color, lw=3, label=col)    
 
         mn = np.mean(sig)
         bound = mn * .05
@@ -357,7 +402,7 @@ if ANALYSE:
     axarr[1].plot(avel)
 
     f.suptitle(basename)
-    axarr[0].set(ylabel='ROI signal')
+    axarr[0].set(ylabel='ROI signal (med filt)')
     axarr[0].legend()
     axarr[1].set(ylabel='angular velocity (degrees per sec)', xlabel='frames')
 
